@@ -1,174 +1,180 @@
-# Đóm Dáng — Việt Phục Remix
+<div align="center">
 
-> **Trải nghiệm kể chuyện văn hóa và phối thử trang phục truyền thống Việt Nam**, dẫn dắt bởi nhân vật Đom Đóm ấm áp, điềm đạm.  
-> Ứng dụng tôn vinh di sản nếp áo của các dân tộc anh em trên dải đất hình chữ S với tinh thần: **Gìn giữ cốt cách xưa — Tự do thấu hiểu nay**.
+![Cò Em — Việt Phục Remix Banner](./public/readme-hero.svg)
+
+<br />
+
+[![React](https://img.shields.io/badge/React-19.0-0ea5e9?style=for-the-badge&logo=react&logoColor=white)](https://react.dev/)
+[![TypeScript](https://img.shields.io/badge/TypeScript-Strict-2563eb?style=for-the-badge&logo=typescript&logoColor=white)](https://www.typescriptlang.org/)
+[![Vite](https://img.shields.io/badge/Vite-8.3-7c3aed?style=for-the-badge&logo=vite&logoColor=white)](https://vitejs.dev/)
+[![Tailwind CSS](https://img.shields.io/badge/Tailwind_CSS-4.3-06b6d4?style=for-the-badge&logo=tailwindcss&logoColor=white)](https://tailwindcss.com/)
+[![Express](https://img.shields.io/badge/Express-4.21-059669?style=for-the-badge&logo=express&logoColor=white)](https://expressjs.com/)
+[![Firebase](https://img.shields.io/badge/Firebase-Auth_%26_Firestore-f59e0b?style=for-the-badge&logo=firebase&logoColor=white)](https://firebase.google.com/)
+[![Gemini AI](https://img.shields.io/badge/Google_GenAI-Gemini_Proxy-8b5cf6?style=for-the-badge&logo=googlegemini&logoColor=white)](https://ai.google.dev/)
+
+<p>
+  <strong>Trải nghiệm kể chuyện văn hóa, khảo cứu và phối thử trang phục truyền thống Việt Nam</strong><br />
+  dẫn dắt bởi nhân vật <strong>Cò Em</strong> — tôn vinh di sản nếp áo <strong>54 dân tộc anh em</strong> trên dải đất hình chữ S.<br />
+  <em>"Gìn giữ cốt cách xưa — Tự do thấu hiểu nay"</em>
+</p>
+
+</div>
 
 ---
 
-## 1. Hướng dẫn cài đặt & khởi chạy
+## Đội ngũ phát triển (Team)
+
+Dự án **Cò Em — Việt Phục Remix** được nghiên cứu, thiết kế và xây dựng bởi:
+
+| Thành viên | Vai trò | Trọng trách chính |
+| :--- | :--- | :--- |
+| **Nguyễn Lê Bảo Đăng** | **Nhóm trưởng (Team Lead)** | Kiến trúc hệ thống Full-stack, điều phối luồng trải nghiệm end-to-end, bảo mật API & tích hợp AI / bản đồ / đồ họa 2D–3D |
+| **Lê Diễm Quỳnh Như** | **Thành viên phát triển** | Nghiên cứu tư liệu khảo cứu Việt phục & 54 dân tộc, biên soạn nội dung lễ hội – chất liệu – câu hỏi văn hóa, thiết kế trải nghiệm & kiểm thử |
+
+---
+
+## 1. Tổng quan & Tính năng nổi bật
+
+**Cò Em — Việt Phục Remix** kết hợp giữa **kho tư liệu văn hóa được đối chiếu nguồn**, **động cơ luật phối đồ minh bạch**, **đồ họa vector 2D/3D toán học** và **trợ lý AI bảo mật qua máy chủ**:
+
+- **Bộ Sưu Tập Di Sản (`72 trang phục` · `23 nhóm văn hóa`)**: Tra cứu chi tiết từng bộ cổ phục (Giao Lĩnh, Viên Lĩnh, Đối Khâm, Áo Tấc, Nhật Bình, Áo Ngũ Thân, Áo Tứ Thân, Áo Dài...) và trang phục các dân tộc kèm lịch sử, chất liệu vải, nguồn khảo cứu.
+- **Sắc Phục `54 Dân Tộc` & Sổ Thông Hành Triện Son**: Khám phá đầy đủ 54 dân tộc phân theo hệ ngôn ngữ, tự động đóng dấu sưu tầm **Con Dấu Triện Son** khi đọc hồ sơ trang phục hoặc chinh phục thử thách.
+- **Bản Đồ Di Sản `34 Tỉnh Thành` (theo QĐ 19/2025/QĐ-TTg)**: Bản đồ SVG tương tác 4 vùng (Bắc Bộ, Trung Bộ, Tây Nguyên, Nam Bộ), tích hợp **Dòng Thời Gian** (`6 mốc lịch sử`) và **Sợi Chỉ Chung** (đối chiếu giao thoa giữa các nhóm văn hóa).
+- **Xưởng Phối Đồ 2D Toán Học (`AvatarSVG` & `GarmentLayers`)**: Tùy chỉnh giới tính, độ tuổi, vóc dáng croquis 9 đầu, 6 tông da, kiểu tóc, góc nhìn trước/sau, phối màu và `16 phụ kiện` truyền thống lẫn hiện đại với chỉ báo chuẩn mực văn hóa theo thời gian thực.
+- **Thử Đồ AI & Bóc Tách Di Sản 3D (`ThuDoAIScreen`)**:
+  - Phân tích điểm khớp cơ thể qua Gemini Vision (`/api/try-on/transfer`) để căn chỉnh trang phục lên ảnh chân dung/bán thân.
+  - Bóc tách cấu trúc lớp áo trực quan qua `DigitalHeritageInspectorModal`.
+- **Lễ Hội & Gợi Ý Bối Cảnh Thời Tiết**:
+  - `6 nhóm lễ hội lớn` trong năm kèm quy tắc mặc chuẩn văn hóa.
+  - Gợi ý trang phục theo tiết trời thời gian thực từ **Open-Meteo** (hỗ trợ GPS theo yêu cầu, tìm kiếm thành phố, hoặc tọa độ đại diện vùng).
+- **Đấu Trường Thám Tử Văn Hóa**: Gồm **`12 ca giám định 2D`** (bắt lỗi nón/khăn, phom áo, phụ kiện, họa tiết) và **`20 câu hỏi trắc nghiệm`** chia theo 4 chủ đề văn hóa kèm chuỗi combo.
+- **Chợ Phiên, Làng Nghề & Gùi Ký Ức**: Đăng tải và bình chọn bản phối cộng đồng có lý do văn hóa, kết nối làng nghề đặt may / workshop di sản, lưu trữ bộ phối cá nhân vào **Gùi Ký Ức** và **Nhật Ký Trải Nghiệm**.
+- **Trợ Lý Cò Em, Bản Đồ Địa Điểm & Nhạc Di Sản**: Chat hỏi đáp văn hóa có kiểm soát ngữ cảnh (`/api/gemini`), tìm bảo tàng/làng nghề bằng Google Maps Grounding (`/api/maps/heritage-places`), và tạo giai điệu dân tộc qua Lyria (`/api/music/generate`).
+- **Xác Thực & Đồng Bộ Đám Mây**: Hỗ trợ **Email OTP 6 chữ số**, **Firebase Google Sign-In & Cloud Firestore**, cùng **Cổng Quản Trị RBAC (`AdminScreen`)** xác thực bằng SHA-256 `timingSafeEqual` hoàn toàn trên máy chủ.
+
+---
+
+## 2. Kiến trúc hệ thống & Bảo mật
+
+![Kiến trúc 3 lớp và bảo mật Full-Stack](./public/readme-architecture.svg)
+
+### Kiến trúc 3 lớp (3-Layer Cultural Integrity)
+
+1. **Lớp 1 — Dữ liệu gốc kiểm chứng (`src/data/`)**:
+   - Toàn bộ danh mục trang phục (`72`), nhóm văn hóa (`23`), 54 dân tộc, 6 lễ hội, 16 phụ kiện, 5 chất liệu vải, 6 mốc thời gian và 7 nguồn khảo cứu được nạp tĩnh tại client (`0ms` độ trễ, sẵn sàng ngoại tuyến).
+2. **Lớp 2 — Bộ luật văn hóa xác định (`src/lib/rules.ts`)**:
+   - Mọi phán quyết phối đồ (`Chuẩn mực`, `Sáng tạo`, `Cần xem lại`) được tính toán bằng quy tắc tường minh trong mã nguồn. AI **không** tự ý phán quyết đúng/sai văn hóa để loại bỏ thiên kiến và ảo giác dữ liệu.
+3. **Lớp 3 — Server Proxy, Gemini AI & Cloud Sync (`server/` + `src/lib/firebase.ts`)**:
+   - **Bảo vệ khóa API tuyệt đối**: `GEMINI_API_KEY` chỉ tồn tại trên Express server (`server/routes/aiRoutes.ts`), không bao giờ được nhúng vào bundle client.
+   - **An toàn & Cô lập dữ liệu**: `server/security.ts` áp dụng HTTP security headers, rate limiting (`180 req/phút`), khử độc chuỗi chống XSS, `redactSecrets` tẩy sạch khóa/đường dẫn khỏi log lỗi. Dữ liệu người dùng (Nhân vật, Bộ phối đồ, Đơn hàng) được cô lập theo `user_id` trong SQLite (`node:sqlite` + fallback JSON nguyên tử tại `data_store/`) hoặc Cloud Firestore (`firestore.rules`).
+
+### Các nhóm API máy chủ (`server.ts`)
+
+| Nhóm Route | Endpoint tiêu biểu | Chức năng |
+| :--- | :--- | :--- |
+| **Auth** | `/api/auth/send-otp`, `/verify-otp`, `/admin-login`, `/me`, `/logout` | Xác thực Email OTP 6 số, cấp Session Token 64-hex, xác thực Admin SHA-256 timing-safe |
+| **Storage** | `/api/health`, `/api/character`, `/api/outfits`, `/api/memories`, `/api/orders` | Đồng bộ cấu hình nhân vật, tủ đồ cá nhân, ký ức cộng đồng, đơn đặt may |
+| **AI & Media** | `/api/try-on/transfer`, `/api/gemini`, `/api/maps/heritage-places`, `/api/music/generate` | Căn chỉnh điểm khớp thử đồ, chat Cò Em có kiểm tra JSON Schema, Google Maps Grounding, Lyria Music |
+
+---
+
+## 3. Cấu trúc thư mục dự án
+
+```text
+co-em-viet-phuc-remix/
+├── server.ts                  # Entrypoint Express Full-Stack (dev middleware + production static)
+├── server/
+│   ├── db.ts & dbTypes.ts     # Quản lý SQLite (node:sqlite) & JSON fallback cô lập theo userId
+│   ├── emailService.ts        # Sinh mã OTP 6 chữ số bằng crypto & điều phối gửi email
+│   ├── security.ts            # Rate limiter, HTTP security headers, XSS sanitize, redactSecrets
+│   └── routes/                # authRoutes.ts, storageRoutes.ts, aiRoutes.ts
+├── src/
+│   ├── App.tsx                # Điều phối màn hình (React.lazy + Suspense code-splitting)
+│   ├── characters/            # Hệ thống nhân vật croquis, tỉ lệ giải phẫu, tông da & layering
+│   ├── components/            # UI module hóa (map 34 tỉnh, tham-tu, cho-phien, admin, thu-do-ai...)
+│   ├── copy/                  # Từ điển giao diện tiếng Việt (coem.ts / domdom.ts)
+│   ├── data/                  # Kho tư liệu văn hóa (trangphuc, dan_toc_54, le_hoi_di_san, tham_tu...)
+│   ├── hooks/                 # Hooks đồng bộ trạng thái & thông báo (useAppSync.ts...)
+│   ├── lib/                   # Bộ luật rules, âm thanh Web Audio API, Auth, Firebase, Gemini client
+│   ├── narrator/              # Nhân vật dẫn chuyện Cò Em
+│   ├── outfit/                # Logic & lớp vẽ trang phục 2D
+│   └── screens/               # 19 màn hình chức năng tách module rõ ràng
+├── public/                    # Tài nguyên tĩnh & SVG minh họa động
+├── firestore.rules            # Quy tắc bảo mật Cloud Firestore
+└── firebase-applet-config.json
+```
+
+---
+
+## 4. Hướng dẫn cài đặt & khởi chạy
 
 ### Yêu cầu môi trường
-- Node.js >= 18.x
-- npm >= 9.x
+- **Node.js** `>= 22.x` (hỗ trợ chạy trực tiếp TypeScript trên Node và `node:sqlite`)
+- **npm** `>= 9.x`
+
+### Cấu hình biến môi trường (`.env`)
+Tham khảo tệp `.env.example` (tuyệt đối không commit khóa thật lên mã nguồn):
+```env
+GEMINI_API_KEY="YOUR_GEMINI_API_KEY"
+APP_URL="http://localhost:3000"
+# Tùy chọn bảo mật thêm cho cổng Admin:
+# ADMIN_PASSWORD="your-strong-admin-password"
+```
 
 ### Các lệnh thực thi
 ```bash
-# Cài đặt các gói phụ thuộc
+# 1. Cài đặt các gói phụ thuộc
 npm install
 
-# Khởi chạy máy chủ phát triển (mặc định cổng 3000)
+# 2. Khởi chạy máy chủ phát triển Full-Stack (mặc định http://localhost:3000)
 npm run dev
 
-# Kiểm tra cú pháp và kiểu dữ liệu (TypeScript)
+# 3. Kiểm tra kiểu dữ liệu TypeScript
 npm run lint
 
-# Đóng gói ứng dụng cho môi trường sản xuất
+# 4. Đóng gói frontend cho môi trường sản xuất (xuất ra thư mục dist/)
 npm run build
+
+# 5. Chạy máy chủ ở chế độ sản xuất
+NODE_ENV=production npm start
+
+# 6. Chạy bộ kiểm thử tự động phía server
+npm test
 ```
 
 ---
 
-## 2. Kiến trúc 3 lớp (3-Layer Architecture)
+## 5. Cách mở rộng dữ liệu văn hóa (Data-Driven)
 
-Ứng dụng được thiết kế phân tầng chặt chẽ nhằm đảm bảo tính toàn vẹn và chuẩn mực văn hóa:
+Nhờ tách biệt hoàn toàn lớp dữ liệu và giao diện, việc bổ sung một nhóm văn hóa hoặc trang phục mới chỉ cần cập nhật tại `src/data/` mà **không cần sửa logic màn hình**:
 
-```
-┌────────────────────────────────────────────────────────┐
-│  LỚP 1: DỮ LIỆU VĂN HÓA KIỂM CHỨNG (src/data/)         │
-│  - Trang phục, Nhóm dân tộc, Phụ kiện, Chất liệu, Nguồn│
-└──────────────────────────┬─────────────────────────────┘
-                           │
-                           ▼
-┌────────────────────────────────────────────────────────┐
-│  LỚP 2: BỘ LUẬT VĂN HÓA XÁC ĐỊNH (src/lib/rules.ts)    │
-│  - Phán quyết: Chuẩn mực | Sáng tạo | Cần xem lại      │
-│  - Kiểm định quy tắc phối màu và bối cảnh sử dụng     │
-└──────────────────────────┬─────────────────────────────┘
-                           │
-                           ▼
-┌────────────────────────────────────────────────────────┐
-│  LỚP 3: GEMINI DIỄN ĐẠT CẢM XÚC (src/lib/gemini.ts)    │
-│  - Kể chuyện "Một Trang Đời", Cố vấn trò chuyện        │
-│  - Grounded context: Tuyệt đối không bịa đặt dữ liệu   │
-└────────────────────────────────────────────────────────┘
-```
-
-1. **Lớp 1 — Dữ liệu gốc (`src/data/`)**:
-   - `trangphuc.ts`: Định nghĩa danh mục trang phục, mảng dữ kiện sự thật (`suThat`), dịp mặc (`dip`), và mã nguồn khảo cứu (`nguonIds`).
-   - `nhom.ts`: Thông tin 8 nhóm vùng miền văn hóa (Kinh Bắc, Chăm, Thái, H'Mông, Ba Na, Ê Đê, Nam Bộ, v.v.).
-   - `phukien.ts`, `vai.ts`, `mausac.ts`, `mocthoigian.ts`, `nguon.ts`: Các tư liệu văn hóa phụ trợ được gắn mã đối chiếu.
-   - *Nguyên tắc cốt lõi*: Mọi câu từ hiển thị trên giao diện đều trích xuất trực tiếp từ các tệp dữ liệu này, không ghi đè định kiến cá nhân.
-
-2. **Lớp 2 — Bộ luật xác định (`src/lib/rules.ts`)**:
-   - Mọi phán quyết văn hóa về cách kết hợp trang phục (nhãn `chuan` - Chuẩn mực, `sang_tao` - Sáng tạo, `can_xem_lai` - Cần xem lại) được xử lý bằng mã logic toán học minh bạch.
-   - AI **không** được trao quyền phán quyết đúng/sai về mặt văn hóa nhằm tránh thiên kiến và ảo giác (hallucination).
-
-3. **Lớp 3 — Gemini diễn đạt cảm xúc (`src/lib/gemini.ts`)**:
-   - Gemini (`gemini-3.8-flash`) chỉ đóng vai trò người dẫn chuyện "Một Trang Đời" hoặc người giải đáp trong khung chat "Cố vấn văn hóa".
-   - Tất cả prompt đều được bao bọc trong ngữ cảnh dữ liệu đóng kín (*grounded in CONTEXT*), nhiệt độ thấp (0.3), kiểm tra schema JSON nghiêm ngặt và luôn có bản hiển thị dự phòng tức thì nếu mất kết nối mạng.
-
-### Phân loại dữ liệu & Tối ưu hóa truy vấn (Data Stratification)
-Ứng dụng tách biệt dứt khoát ba luồng dữ liệu:
-1. **Dữ liệu TĨNH**: Trang phục (`trangphuc.ts`), màu sắc (`mausac.ts`), phụ kiện (`phukien.ts`), bộ luật kiểm định (`rules.ts`) — nạp duy nhất 1 lần khi mở ứng dụng, lưu giữ trong bộ nhớ máy khách, không phát sinh bất kỳ yêu cầu mạng nào khi chuyển màn hình.
-2. **Dữ liệu ĐỘNG CỤC BỘ**: Gùi Ký Ức (`guiKyUc.ts`), hồ sơ người dùng (`hoSo.ts`), hồ sơ phong cách (`styleProfile.ts`), tiến trình khám phá — đọc/ghi tức thì trên `localStorage`/`sessionStorage` của trình duyệt, độ trễ 0ms, không qua mạng. Mọi thao tác đổi màu, thay đổi phụ kiện, góc nhìn, tư thế đều chỉ cập nhật state cục bộ và render lại SVG toán học.
-3. **Dữ liệu CẦN GEMINI**: Giới hạn nghiêm ngặt ở 4 tính năng tương tác sâu (Một Trang Đời, Cố vấn Đom Đóm, Thám Tử Văn Hóa, Giải thích sâu "Vì sao"). Mọi lệnh gọi đều được gắn `callerKey` kèm `AbortController` để tự động hủy bỏ lệnh in-flight cũ nếu người dùng chuyển lựa chọn mới, tránh hiển thị nhầm kết quả.
-
+1. **Thêm nhóm văn hóa** tại `src/data/nhom.ts` (`id`, `ten`, `vung`).
+2. **Thêm trang phục** tại `src/data/trangphuc/` (`id`, `ten`, `nhomIds`, `gioiTinh`, `dip`, `thoiTiet`, `moTaNgan`, `suThat`, `mucRemix`, `nguonIds`, `daKiemChung`).
+3. **Bổ sung phụ kiện / chất liệu / nguồn** (nếu có) vào `src/data/phukien.ts`, `src/data/vai.ts` và `src/data/nguon.ts`.
 
 ---
 
-## 3. Cách thêm một nhóm dân tộc mới (Chỉ thêm dữ liệu)
+## 6. Nguồn tư liệu khảo cứu, Tài nguyên & Quyền riêng tư
 
-Hệ thống được thiết kế theo dạng Data-Driven hoàn toàn mở. Để thêm một nhóm văn hóa mới mà **không cần can thiệp logic mã nguồn giao diện**, chỉ cần thực hiện 3 bước:
+### Nguồn tư liệu tham khảo (`src/data/nguon.ts`)
+1. **Bảo tàng Dân tộc học Việt Nam** — Tư liệu hiện vật và sắc phục 54 dân tộc.
+2. **Bảo tàng Phụ nữ Việt Nam** — Nghiên cứu trang phục phụ nữ qua các thời kỳ.
+3. **Viện Văn hóa Nghệ thuật Quốc gia Việt Nam** — Công trình khảo cứu trang phục lễ hội.
+4. **Ngàn năm áo mũ (Trần Quang Đức)** — Tư liệu lịch sử trang phục cung đình & dân gian.
+5. **Open-Meteo API** (CC BY 4.0) — Dữ liệu thời tiết thời gian thực phục vụ gợi ý bối cảnh mặc.
 
-### Bước 1: Khai báo nhóm trong `src/data/nhom.ts`
-Thêm một đối tượng mới vào mảng `nhom`:
-```typescript
-{
-  id: "dao",
-  ten: "Người Dao",
-  vungId: "bac",
-  moTa: "Nổi bật với sắc chàm sâu lắng, khăn đỏ rực rỡ và những đường thêu chỉ màu tinh xảo...",
-  mauDacTrung: "#B83227",
-  hoaVanDacTrung: "Họa tiết quả trám, ngôi sao tám cánh và hoa văn cành thông thêu tay.",
-  ghiChuVanHoa: "Trang phục truyền thống phản ánh vũ trụ quan và ước vọng mùa màng bội thu."
-}
-```
+### Tài nguyên kỹ thuật
+- **Typography**: *Noto Serif*, *Charm* và *Be Vietnam Pro* (Google Fonts, giấy phép mở).
+- **Âm thanh (`src/lib/audio.ts`)**: Tổng hợp 100% thời gian thực bằng **Web Audio API** (tiếng vải lụa sột soạt, chuông bạc, bước guốc mộc, gảy đàn dân tộc) — không phụ thuộc tệp âm thanh bản quyền bên ngoài.
+- **Đồ họa nhân vật & bản đồ**: Vector SVG toán học (`AvatarSVG`, `GarmentLayers`, `Vietnam34MapSVG`), hiển thị sắc nét trên mọi kích thước màn hình.
 
-### Bước 2: Thêm trang phục thuộc nhóm trong `src/data/trangphuc.ts`
-Thêm trang phục tương ứng vào mảng `trangPhuc`:
-```typescript
-{
-  id: "dao_do",
-  ten: "Áo dài người Dao Đỏ",
-  nhomIds: ["dao"],
-  vungId: "bac",
-  gioiTinh: "nu",
-  dip: ["le_hoi", "cuoi"],
-  moTaNgan: "Nếp áo chàm đen điểm xuyết quả bông đỏ thắm trước ngực và khăn vấn đầu cầu kỳ.",
-  suThat: [
-    "Những quả bông len đỏ trước ngực tượng trưng cho ngọn lửa sưởi ấm vùng cao và may mắn.",
-    "Khăn đội đầu của phụ nữ Dao Đỏ có thể nặng từ 1 đến 2 kg với nhiều lớp vải gấp tỉ mỉ."
-  ],
-  nguonIds: ["bt_dan_toc_hoc", "trang_phuc_cac_dan_toc_vn"],
-  phuKienTuongThich: ["khan_dao_do", "vong_bac_dao"]
-}
-```
-
-### Bước 3: Bổ sung phụ kiện và chất liệu (nếu có)
-- Thêm phụ kiện mới vào `src/data/phukien.ts`.
-- Thêm chất liệu vải mới vào `src/data/vai.ts`.
-- Ghi nhận tài liệu trích dẫn vào `src/data/nguon.ts`.
-
-Ngay sau khi lưu tệp dữ liệu, bản đồ văn hóa, bộ lọc trang phục, màn hình thử đồ, sợi chỉ chung và trợ lý Đom Đóm sẽ tự động cập nhật nhóm mới mà không cần sửa bất kỳ dòng lệnh logic nào.
+### Quyền riêng tư & Định vị
+- Ứng dụng **không** tự động yêu cầu quyền GPS khi tải trang. Trình duyệt chỉ hỏi quyền vị trí khi người dùng chủ động nhấn nút chọn định vị cho tính năng gợi ý thời tiết, hoặc có thể nhập tìm địa điểm / dùng tọa độ mặc định theo 4 vùng văn hóa (`Hà Nội`, `Huế`, `Buôn Ma Thuột`, `TP. Hồ Chí Minh`). Tọa độ chỉ lưu tạm trong `sessionStorage` của phiên làm việc.
 
 ---
 
-## 4. Nguồn tư liệu khảo cứu
+<div align="center">
 
-Mọi chi tiết trang phục, mốc thời gian và hoa văn trong ứng dụng đều được trích dẫn từ các nguồn nghiên cứu uy tín:
-1. **Bảo tàng Dân tộc học Việt Nam** — Tư liệu hiện vật và văn hóa mặc 54 dân tộc.
-2. **Bảo tàng Phụ nữ Việt Nam** — Nghiên cứu trang phục phụ nữ các thời kỳ và vùng miền.
-3. **Viện Văn hóa Nghệ thuật Quốc gia Việt Nam** — Các công trình khảo cứu trang phục lễ hội truyền thống.
-4. **"Ngàn năm áo mũ" (Trần Quang Đức)** — Nghiên cứu lịch sử trang phục cung đình và dân gian thời quân chủ.
-5. **Dữ liệu thời tiết trực tuyến Open-Meteo** (Giấy phép CC BY 4.0) phục vụ tính năng gợi ý trang phục theo tiết trời thời gian thực.
+![Cò Em — Việt Phục Remix Footer](./public/readme-wave-footer.svg)
 
----
-
-## 5. Bản quyền & Giấy phép tài nguyên
-
-- **Kiểu chữ (Typography)**: Sử dụng các phông chữ mở phân phối qua Google Fonts:
-  - *Noto Serif*: Dành cho tiêu đề và lời dẫn đậm chất văn hóa.
-  - *Be Vietnam Pro*: Dành cho thân bài, thông số và các trường đọc văn bản.
-- **m thanh (Audio)**: Hoàn toàn tổng hợp trong thời gian thực bằng **Web Audio API** (`src/lib/audio.ts`):
-  - Tiếng vải sột soạt: Bộ lọc nhiễu hạt bandpass.
-  - Tiếng chuông bạc: Sóng sin hài hòa ngân vang nhẹ nhàng.
-  - Tiếng bước guốc: Xung âm học mô phỏng đế guốc mộc gõ thềm nhà cổ.
-  - *Tuyệt đối không sử dụng tệp âm thanh tĩnh chứa bản quyền bên ngoài.*
-- **Chất liệu thị giác (Visual Assets)**:
-  - Lớp nhiễu hạt giấy hạt (paper grain): Thuật toán SVG Fractal Noise trực tiếp từ chuỗi Data URI mã nguồn mở.
-  - Hình họa nhân vật và trang phục: Render hoàn toàn bằng vector SVG toán học, thích ứng mượt mà với mọi tỉ lệ co giãn cơ thể.
-
----
-
-## 6. Cách thức tích hợp Gemini & Giới hạn hiện tại
-
-### Cách thức hoạt động của Gemini
-- Sử dụng SDK hiện đại `@google/genai` với mô hình `gemini-3.8-flash` (dự phòng `gemini-3.1-flash-lite`).
-- Thời gian chờ (Timeout) tối đa 12 giây; có cơ chế tự động thử lại khi quá tải.
-- Kiểm tra nghiêm ngặt cấu trúc JSON trả về theo Schema định nghĩa sẵn.
-- **Chế độ ngoại tuyến mượt mà**: Nếu thiết bị mất mạng, API Key hết hạn hoặc Gemini gặp lỗi, ứng dụng tự động hiển thị nguyên bản ghi chép gốc có nguồn đối chiếu và câu trả lời dự phòng của Đom Đóm — đảm bảo tuyệt đối không có màn hình trắng hay lỗi giao diện.
-
-### Giới hạn hiện tại trong bản thử nghiệm
-1. **Hồ sơ người dùng (`Hồ sơ`)**: Hiện tại hoạt động cục bộ trên trình duyệt (`localStorage`) thông qua cơ chế phân vùng khóa `vpr:<hoSo>:...`. Chưa đồng bộ hóa tài khoản qua máy chủ đám mây.
-2. **Chợ Phiên cộng đồng**: Các bài đăng mẫu hiện tại đại diện cho các trường hợp phối đồ mô phỏng cộng đồng nhằm phục vụ thử nghiệm tính năng bình chọn có lý do văn hóa. Dữ liệu bài đăng mới của bạn được lưu trữ trên máy cá nhân.
-
----
-
-## 7. Quyền riêng tư & Quản lý vị trí địa lý
-
-- **Mục đích sử dụng**: "Vị trí" được sử dụng độc quyền cho tính năng gợi ý thời tiết và hiển thị bầu trời Đom Đóm, **không lưu lại trên máy chủ** (chỉ lưu tạm thời trong `sessionStorage` của phiên hiện tại trên trình duyệt và tự hủy khi đóng phiên).
-- **Quyền tự quyết của người dùng (Luồng 3 bước ưu tiên rõ ràng)**:
-  1. **Bước 1 — Hỏi quyền chỉ khi bấm**: Ứng dụng *tuyệt đối không xin quyền vị trí im lặng* ở nền hay khi vừa mở trang. Hộp thoại trình duyệt (`navigator.geolocation`) chỉ xuất hiện khi người dùng chủ động bấm nút *"Dùng vị trí của tôi (GPS)"*.
-  2. **Bước 2 — Ô tìm kiếm địa điểm dự phòng**: Nếu người dùng từ chối cấp quyền hoặc trình duyệt không hỗ trợ định vị, hệ thống lập tức mở ô tìm kiếm địa điểm để người dùng gõ tên thành phố, thị xã hoặc huyện và chọn từ danh sách gợi ý.
-  3. **Bước 3 — Vị trí mặc định theo vùng**: Nếu người dùng bỏ qua cả hai bước trên, ứng dụng sử dụng vị trí đại diện của vùng đang xem trên Toạ Độ Ký Ức (Hà Nội, Huế, Buôn Ma Thuột, TP. Hồ Chí Minh), nói rõ đây là vị trí mặc định và cung cấp nút đổi linh hoạt.
-
+</div>

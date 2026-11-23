@@ -1,0 +1,164 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 340" width="100%" height="100%" role="img" aria-label="Cò Em - Việt Phục Remix">
+  <defs>
+    <linearGradient id="bgGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#04241c" />
+      <stop offset="50%" stop-color="#0b3b30" />
+      <stop offset="100%" stop-color="#132536" />
+    </linearGradient>
+    <linearGradient id="goldGrad" x1="0%" y1="0%" x2="100%" y2="0%">
+      <stop offset="0%" stop-color="#f59e0b" />
+      <stop offset="50%" stop-color="#fde68a" />
+      <stop offset="100%" stop-color="#f59e0b" />
+    </linearGradient>
+    <linearGradient id="ribbon1" x1="0%" y1="0%" x2="100%" y2="0%">
+      <stop offset="0%" stop-color="#10b981" stop-opacity="0" />
+      <stop offset="35%" stop-color="#10b981" stop-opacity="0.35" />
+      <stop offset="65%" stop-color="#f59e0b" stop-opacity="0.35" />
+      <stop offset="100%" stop-color="#f59e0b" stop-opacity="0" />
+    </linearGradient>
+    <radialGradient id="sunGlow" cx="50%" cy="50%" r="50%">
+      <stop offset="0%" stop-color="#fbbf24" stop-opacity="0.32" />
+      <stop offset="65%" stop-color="#f59e0b" stop-opacity="0.08" />
+      <stop offset="100%" stop-color="#f59e0b" stop-opacity="0" />
+    </radialGradient>
+    <filter id="glow" x="-30%" y="-30%" width="160%" height="160%">
+      <feGaussianBlur stdDeviation="3.5" result="blur" />
+      <feMerge>
+        <feMergeNode in="blur" />
+        <feMergeNode in="SourceGraphic" />
+      </feMerge>
+    </filter>
+    <clipPath id="cardClip">
+      <rect x="0" y="0" width="1200" height="340" rx="22" />
+    </clipPath>
+  </defs>
+
+  <g clip-path="url(#cardClip)">
+    <!-- Nền sơn mài ngọc lục bảo -->
+    <rect width="1200" height="340" fill="url(#bgGrad)" />
+
+    <!-- Vầng hào quang trống đồng phía phải -->
+    <circle cx="965" cy="170" r="210" fill="url(#sunGlow)">
+      <animate attributeName="r" values="195;220;195" dur="7s" repeatCount="indefinite" />
+    </circle>
+
+    <!-- Họa tiết vòng tròn Trống Đồng xoay chậm -->
+    <g transform="translate(965, 170)" opacity="0.22" stroke="#fcd34d" fill="none">
+      <g>
+        <circle r="165" stroke-width="1.2" stroke-dasharray="6 8" />
+        <circle r="135" stroke-width="1" stroke-dasharray="2 6" />
+        <circle r="102" stroke-width="1.5" stroke-dasharray="14 6" />
+        <circle r="72" stroke-width="1" stroke-dasharray="4 4" />
+        <animateTransform attributeName="transform" type="rotate" from="0" to="360" dur="55s" repeatCount="indefinite" />
+      </g>
+      <g>
+        <circle r="150" stroke-width="1" stroke-dasharray="2 14" />
+        <polygon points="0,-54 11,-16 51,-16 18,7 30,45 0,22 -30,45 -18,7 -51,-16 -11,-16" stroke-width="1.2" opacity="0.7" />
+        <animateTransform attributeName="transform" type="rotate" from="360" to="0" dur="40s" repeatCount="indefinite" />
+      </g>
+    </g>
+
+    <!-- Dải lụa mềm uốn lượn phía dưới -->
+    <path d="M-40,290 C220,235 420,335 720,275 C960,230 1090,305 1240,265 L1240,350 L-40,350 Z" fill="url(#ribbon1)">
+      <animate attributeName="d"
+        values="M-40,290 C220,235 420,335 720,275 C960,230 1090,305 1240,265 L1240,350 L-40,350 Z;
+                M-40,275 C240,325 460,235 730,290 C970,330 1090,245 1240,285 L1240,350 L-40,350 Z;
+                M-40,290 C220,235 420,335 720,275 C960,230 1090,305 1240,265 L1240,350 L-40,350 Z"
+        dur="9s" repeatCount="indefinite" />
+    </path>
+
+    <!-- Biểu tượng cánh Cò Em cách điệu bay nhẹ -->
+    <g transform="translate(915, 118)" filter="url(#glow)">
+      <g>
+        <animateTransform attributeName="transform" type="translate" values="0,0; 0,-8; 0,0" dur="4.5s" repeatCount="indefinite" />
+        <!-- Thân & cánh cò trắng ánh vàng -->
+        <path d="M22,68 C38,44 68,26 106,36 C86,44 74,56 64,74 C50,82 32,82 22,68 Z" fill="#fef3c7" opacity="0.95" />
+        <path d="M52,46 C66,18 96,4 128,12 C104,22 86,38 74,58 Z" fill="#fde68a" opacity="0.88" />
+        <path d="M95,38 C108,22 122,16 135,19 C128,23 122,28 117,36" fill="none" stroke="#fef3c7" stroke-width="5" stroke-linecap="round" />
+        <polygon points="134,17 154,20 135,24" fill="#f59e0b" />
+        <path d="M40,73 L14,88 M48,76 L26,95" stroke="#fde68a" stroke-width="2.4" stroke-linecap="round" />
+      </g>
+    </g>
+
+    <!-- Các hạt đom đóm / ánh vàng lấp lánh -->
+    <g fill="#fde68a" filter="url(#glow)">
+      <circle cx="140" cy="70" r="2.5">
+        <animate attributeName="opacity" values="0.2;1;0.2" dur="3.2s" repeatCount="indefinite" />
+        <animate attributeName="cy" values="70;58;70" dur="4.4s" repeatCount="indefinite" />
+      </circle>
+      <circle cx="760" cy="68" r="3">
+        <animate attributeName="opacity" values="0.9;0.2;0.9" dur="2.8s" repeatCount="indefinite" />
+        <animate attributeName="cy" values="68;80;68" dur="5s" repeatCount="indefinite" />
+      </circle>
+      <circle cx="840" cy="245" r="2.2">
+        <animate attributeName="opacity" values="0.3;1;0.3" dur="3.8s" repeatCount="indefinite" />
+      </circle>
+      <circle cx="1110" cy="95" r="2.8">
+        <animate attributeName="opacity" values="1;0.25;1" dur="4.1s" repeatCount="indefinite" />
+      </circle>
+      <circle cx="670" cy="260" r="2">
+        <animate attributeName="opacity" values="0.2;0.9;0.2" dur="2.6s" repeatCount="indefinite" />
+      </circle>
+    </g>
+
+    <!-- Huy hiệu trên cùng -->
+    <g transform="translate(56, 44)">
+      <rect width="276" height="28" rx="14" fill="#10b981" fill-opacity="0.18" stroke="#34d399" stroke-opacity="0.5" />
+      <circle cx="18" cy="14" r="4.5" fill="#34d399">
+        <animate attributeName="opacity" values="1;0.35;1" dur="1.8s" repeatCount="indefinite" />
+      </circle>
+      <text x="32" y="18.5" font-family="system-ui, -apple-system, 'Segoe UI', sans-serif" font-size="12.5" font-weight="700" fill="#a7f3d0" letter-spacing="0.6">
+        DI SẢN VĂN HÓA SỐ VIỆT NAM
+      </text>
+    </g>
+
+    <!-- Tiêu đề chính -->
+    <text x="56" y="128" font-family="Georgia, 'Noto Serif', serif" font-size="50" font-weight="700" fill="url(#goldGrad)" letter-spacing="1">
+      Cò Em — Việt Phục Remix
+    </text>
+
+    <!-- Đường gạch trang trí chạy ánh sáng -->
+    <rect x="56" y="146" width="420" height="3" rx="1.5" fill="#10b981" fill-opacity="0.3" />
+    <rect x="56" y="146" width="130" height="3" rx="1.5" fill="url(#goldGrad)">
+      <animate attributeName="x" values="56;346;56" dur="4.8s" repeatCount="indefinite" />
+    </rect>
+
+    <!-- Mô tả -->
+    <text x="56" y="184" font-family="system-ui, -apple-system, 'Segoe UI', sans-serif" font-size="18.5" font-weight="500" fill="#ecfdf5">
+      Khám phá cổ phục &amp; sắc phục 54 dân tộc Việt Nam qua kể chuyện văn hóa,
+    </text>
+    <text x="56" y="210" font-family="system-ui, -apple-system, 'Segoe UI', sans-serif" font-size="18.5" font-weight="500" fill="#d1fae5">
+      phối đồ 2D toán học, bóc tách 3D và thử đồ AI thời gian thực.
+    </text>
+    <text x="56" y="240" font-family="Georgia, 'Noto Serif', serif" font-style="italic" font-size="15" fill="#fcd34d">
+      "Gìn giữ cốt cách xưa — Tự do thấu hiểu nay"
+    </text>
+
+    <!-- 4 thẻ số liệu thực tế -->
+    <g transform="translate(56, 266)" font-family="system-ui, -apple-system, 'Segoe UI', sans-serif">
+      <g transform="translate(0, 0)">
+        <rect width="156" height="42" rx="11" fill="#ffffff" fill-opacity="0.08" stroke="#fcd34d" stroke-opacity="0.35" />
+        <text x="16" y="20" font-size="14" font-weight="800" fill="#fde68a">72 Trang Phục</text>
+        <text x="16" y="34" font-size="10.5" fill="#a7f3d0">23 nhóm văn hóa</text>
+      </g>
+      <g transform="translate(172, 0)">
+        <rect width="156" height="42" rx="11" fill="#ffffff" fill-opacity="0.08" stroke="#34d399" stroke-opacity="0.35" />
+        <text x="16" y="20" font-size="14" font-weight="800" fill="#6ee7b7">54 Dân Tộc</text>
+        <text x="16" y="34" font-size="10.5" fill="#a7f3d0">Sổ Thông Hành Triện Son</text>
+      </g>
+      <g transform="translate(344, 0)">
+        <rect width="156" height="42" rx="11" fill="#ffffff" fill-opacity="0.08" stroke="#38bdf8" stroke-opacity="0.35" />
+        <text x="16" y="20" font-size="14" font-weight="800" fill="#7dd3fc">34 Tỉnh Thành</text>
+        <text x="16" y="34" font-size="10.5" fill="#a7f3d0">Bản đồ QĐ 19/2025</text>
+      </g>
+      <g transform="translate(516, 0)">
+        <rect width="184" height="42" rx="11" fill="#ffffff" fill-opacity="0.08" stroke="#c084fc" stroke-opacity="0.35" />
+        <text x="16" y="20" font-size="14" font-weight="800" fill="#e9d5ff">2D · 3D · Gemini AI</text>
+        <text x="16" y="34" font-size="10.5" fill="#a7f3d0">Full-stack Express &amp; Firebase</text>
+      </g>
+    </g>
+
+    <!-- Viền khung ánh kim -->
+    <rect x="1" y="1" width="1198" height="338" rx="21" fill="none" stroke="url(#goldGrad)" stroke-opacity="0.35" stroke-width="1.5" />
+  </g>
+</svg>
