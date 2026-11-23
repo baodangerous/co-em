@@ -50,7 +50,7 @@ Dự án **Cò Em — Việt Phục Remix** được nghiên cứu, thiết kế
 - **Đấu Trường Thám Tử Văn Hóa**: Gồm **`12 ca giám định 2D`** (bắt lỗi nón/khăn, phom áo, phụ kiện, họa tiết) và **`20 câu hỏi trắc nghiệm`** chia theo 4 chủ đề văn hóa kèm chuỗi combo.
 - **Chợ Phiên, Làng Nghề & Gùi Ký Ức**: Đăng tải và bình chọn bản phối cộng đồng có lý do văn hóa, kết nối làng nghề đặt may / workshop di sản, lưu trữ bộ phối cá nhân vào **Gùi Ký Ức** và **Nhật Ký Trải Nghiệm**.
 - **Trợ Lý Cò Em, Bản Đồ Địa Điểm & Nhạc Di Sản**: Chat hỏi đáp văn hóa có kiểm soát ngữ cảnh (`/api/gemini`), tìm bảo tàng/làng nghề bằng Google Maps Grounding (`/api/maps/heritage-places`), và tạo giai điệu dân tộc qua Lyria (`/api/music/generate`).
-- **Xác Thực & Đồng Bộ Đám Mây**: Hỗ trợ **Email OTP 6 chữ số**, **Firebase Google Sign-In & Cloud Firestore**, cùng **Cổng Quản Trị RBAC (`AdminScreen`)** xác thực bằng SHA-256 `timingSafeEqual` hoàn toàn trên máy chủ.
+- **Xác Thực & Đồng Bộ Đám Mây**: Hỗ trợ **Email OTP 6 chữ số** (băm HMAC-SHA256), **Firebase Google Sign-In** (đổi sang Session Token máy chủ & đồng bộ Cloud Firestore), cùng **Cổng Quản Trị RBAC (`AdminScreen`)** xác thực qua biến môi trường bằng `timingSafeEqual` hoàn toàn trên máy chủ.
 
 ---
 
@@ -66,15 +66,16 @@ Dự án **Cò Em — Việt Phục Remix** được nghiên cứu, thiết kế
    - Mọi phán quyết phối đồ (`Chuẩn mực`, `Sáng tạo`, `Cần xem lại`) được tính toán bằng quy tắc tường minh trong mã nguồn. AI **không** tự ý phán quyết đúng/sai văn hóa để loại bỏ thiên kiến và ảo giác dữ liệu.
 3. **Lớp 3 — Server Proxy, Gemini AI & Cloud Sync (`server/` + `src/lib/firebase.ts`)**:
    - **Bảo vệ khóa API tuyệt đối**: `GEMINI_API_KEY` chỉ tồn tại trên Express server (`server/routes/aiRoutes.ts`), không bao giờ được nhúng vào bundle client.
-   - **An toàn & Cô lập dữ liệu**: `server/security.ts` áp dụng HTTP security headers, rate limiting (`180 req/phút`), khử độc chuỗi chống XSS, `redactSecrets` tẩy sạch khóa/đường dẫn khỏi log lỗi. Dữ liệu người dùng (Nhân vật, Bộ phối đồ, Đơn hàng) được cô lập theo `user_id` trong SQLite (`node:sqlite` + fallback JSON nguyên tử tại `data_store/`) hoặc Cloud Firestore (`firestore.rules`).
+   - **An toàn & Cô lập dữ liệu**: `server/security.ts` áp dụng HTTP security headers (`nosniff`, `SAMEORIGIN`, `Permissions-Policy`), rate limiting toàn cục (`180 req/phút`) & giới hạn riêng theo route nhạy cảm (`send-otp`, `verify-otp`, `admin-login`, AI routes), băm OTP bằng HMAC-SHA256, khử độc chuỗi chống XSS, và `redactSecrets` tẩy sạch khóa/đường dẫn khỏi log lỗi. Dữ liệu người dùng (Nhân vật, Bộ phối đồ, Đơn hàng) và Cộng đồng/Quản trị (Chợ Phiên, Làng Nghề, Workshop) được cô lập & lưu trữ trong SQLite (`node:sqlite` + fallback JSON nguyên tử tại `data_store/`) hoặc Cloud Firestore (`firestore.rules`).
 
 ### Các nhóm API máy chủ (`server.ts`)
 
 | Nhóm Route | Endpoint tiêu biểu | Chức năng |
 | :--- | :--- | :--- |
-| **Auth** | `/api/auth/send-otp`, `/verify-otp`, `/admin-login`, `/me`, `/logout` | Xác thực Email OTP 6 số, cấp Session Token 64-hex, xác thực Admin SHA-256 timing-safe |
-| **Storage** | `/api/health`, `/api/character`, `/api/outfits`, `/api/memories`, `/api/orders` | Đồng bộ cấu hình nhân vật, tủ đồ cá nhân, ký ức cộng đồng, đơn đặt may |
-| **AI & Media** | `/api/try-on/transfer`, `/api/gemini`, `/api/maps/heritage-places`, `/api/music/generate` | Căn chỉnh điểm khớp thử đồ, chat Cò Em có kiểm tra JSON Schema, Google Maps Grounding, Lyria Music |
+| **Auth** | `/api/auth/send-otp`, `/verify-otp`, `/firebase-session`, `/admin-login`, `/me`, `/logout` | Xác thực Email OTP 6 số (HMAC-SHA256), đổi Firebase ID Token sang Session Token 64-hex, xác thực Admin qua biến môi trường (`timingSafeEqual`) |
+| **Storage & Sync** | `/api/health`, `/api/sync`, `/api/character`, `/api/outfits`, `/api/memories`, `/api/orders` | Đồng bộ đa chiều nhân vật & tủ đồ theo `user_id`, ký ức cộng đồng, đơn đặt may (yêu cầu đăng nhập) |
+| **Community & Admin** | `/api/community/bootstrap`, `/posts`, `/village-orders`, `/workshop-registrations`, `/api/admin/*` | Lưu trữ Chợ Phiên, đặt may làng nghề, đăng ký workshop, che giấu PII & quản trị RBAC (`requireAdmin`) |
+| **AI & Media** | `/api/try-on/transfer`, `/api/gemini`, `/api/maps/heritage-places`, `/api/music/generate` | Căn chỉnh điểm khớp thử đồ (tối đa 8MB), chat Cò Em có kiểm tra JSON Schema, Google Maps Grounding, Lyria Music |
 
 ---
 
@@ -85,11 +86,14 @@ co-em-viet-phuc-remix/
 ├── server.ts                  # Entrypoint Express Full-Stack (dev middleware + production static)
 ├── server/
 │   ├── db.ts & dbTypes.ts     # Quản lý SQLite (node:sqlite) & JSON fallback cô lập theo userId
+│   ├── dbCommunity.ts         # Lưu trữ SQLite cho Chợ Phiên, Làng Nghề, Workshop & cấu hình Admin
 │   ├── emailService.ts        # Sinh mã OTP 6 chữ số bằng crypto & điều phối gửi email
-│   ├── security.ts            # Rate limiter, HTTP security headers, XSS sanitize, redactSecrets
-│   └── routes/                # authRoutes.ts, storageRoutes.ts, aiRoutes.ts
+│   ├── firebaseVerify.ts      # Xác thực Firebase ID Token phía server bằng chứng chỉ Google X.509
+│   ├── security.ts            # Rate limiter đa tầng, HTTP headers, HMAC OTP, XSS sanitize, redactSecrets
+│   └── routes/                # authRoutes.ts, storageRoutes.ts, communityRoutes.ts, aiRoutes.ts
 ├── src/
-│   ├── App.tsx                # Điều phối màn hình (React.lazy + Suspense code-splitting)
+│   ├── App.tsx                # Shell giao diện trung tâm gọn nhẹ (Layout + Modals)
+│   ├── app/                   # Điều phối trạng thái & routing (types.ts, useAppState.ts, ScreenRouter.tsx)
 │   ├── characters/            # Hệ thống nhân vật croquis, tỉ lệ giải phẫu, tông da & layering
 │   ├── components/            # UI module hóa (map 34 tỉnh, tham-tu, cho-phien, admin, thu-do-ai...)
 │   ├── copy/                  # Từ điển giao diện tiếng Việt (coem.ts / domdom.ts)
@@ -117,14 +121,14 @@ Tham khảo tệp `.env.example` (tuyệt đối không commit khóa thật lên
 ```env
 GEMINI_API_KEY="YOUR_GEMINI_API_KEY"
 APP_URL="http://localhost:3000"
-# Tùy chọn bảo mật thêm cho cổng Admin:
-# ADMIN_PASSWORD="your-strong-admin-password"
+# Bắt buộc nếu sử dụng cổng đăng nhập Quản trị viên (hoặc dùng ADMIN_PASSWORD_HASH):
+ADMIN_PASSWORD="your-strong-admin-password"
 ```
 
 ### Các lệnh thực thi
 ```bash
-# 1. Cài đặt các gói phụ thuộc
-npm install
+# 1. Cài đặt các gói phụ thuộc (dùng --legacy-peer-deps với npm hoặc bun install)
+npm install --legacy-peer-deps
 
 # 2. Khởi chạy máy chủ phát triển Full-Stack (mặc định http://localhost:3000)
 npm run dev
