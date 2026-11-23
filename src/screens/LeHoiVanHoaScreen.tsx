@@ -105,13 +105,13 @@ export default function LeHoiVanHoaScreen({
           <div>
             <div className="inline-flex items-center gap-2 text-xs font-semibold text-[var(--vang-chinh)] mb-1">
               <Calendar className="w-3.5 h-3.5" />
-              <span>Lịch Văn Hóa & Sự Kiện Truyền Thống</span>
+              <span>Lịch Lễ Hội</span>
             </div>
             <h1 className="font-serif text-xl sm:text-2xl font-bold text-[var(--chu-chinh)] m-0">
-              Lễ Hội & Sự Kiện Văn Hóa Việt Nam
+              Lễ Hội Văn Hóa Việt Nam
             </h1>
             <p className="text-xs text-[var(--chu-phu)] mt-0.5 mb-0">
-              Chọn mùa lễ hội để xem bộ sưu tập sắc phục tương ứng và quy chuẩn trang phục truyền thống
+              Chọn mùa lễ để xem trang phục gợi ý & quy chuẩn mặc
             </p>
           </div>
 

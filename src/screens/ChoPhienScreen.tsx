@@ -73,7 +73,7 @@ export default function ChoPhienScreen({
                 Chợ Phiên Cộng Đồng & Làng Nghề
               </h1>
               <p className="text-xs text-[var(--tro-tram)] m-0">
-                Không gian giao lưu bản phối Việt phục, kết nối nghệ nhân làng nghề & đăng ký thực hành thủ công di sản
+                Giao lưu bản phối, làng nghề & workshop di sản
               </p>
             </div>
           </div>

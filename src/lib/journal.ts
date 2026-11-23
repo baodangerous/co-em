@@ -8,13 +8,7 @@
  * - Lưu trữ đệm an toàn ngoại tuyến (localStorage) và tự động đồng bộ lên Firestore
  */
 
-import {
-  auth,
-  saveJournalEntryToFirestore,
-  getJournalEntriesFromFirestore,
-  deleteJournalEntryFromFirestore,
-  type JournalEntry,
-} from "./firebase";
+import type { JournalEntry } from "./firebase";
 import { AuthService } from "./auth";
 import { layKhoaTheoHoSo } from "./hoSo";
 import { OutfitSaved, docDanhSachGuiKyUc } from "./guiKyUc";
@@ -57,9 +51,6 @@ export function layKhoaJournal(): string {
  * Lấy User ID hiện tại (ưu tiên Firebase Auth UID, sau đó đến session AuthUser ID, hoặc fallback)
  */
 export function getCurrentUserId(): string | null {
-  if (auth.currentUser?.uid) {
-    return auth.currentUser.uid;
-  }
   const localUser = AuthService.getUser();
   if (localUser?.id) {
     return localUser.id;
@@ -137,23 +128,22 @@ export async function taiVaDongBoJournal(userId?: string): Promise<{
 }> {
   const targetUid = userId || getCurrentUserId();
   const localList = docDanhSachJournalLocal();
+  const token = AuthService.getToken();
 
-  if (!targetUid) {
+  if (!targetUid || !token?.startsWith("fb-")) {
     return { entries: localList, fromFirestore: false };
   }
 
   try {
-    // Tải từ Firestore
+    const { getJournalEntriesFromFirestore, saveJournalEntryToFirestore } = await import("./firebase");
     const firestoreEntries = await getJournalEntriesFromFirestore(targetUid);
     if (firestoreEntries && firestoreEntries.length > 0) {
-      // Kết hợp giữa Firestore và local (Firestore làm gốc, thêm các entry local mới chưa có trên cloud)
       const firestoreIds = new Set(firestoreEntries.map((e) => e.id));
       const combined = [...firestoreEntries];
 
       for (const loc of localList) {
         if (!firestoreIds.has(loc.id)) {
           combined.push(loc);
-          // Đẩy ngầm lên Firestore để đồng bộ
           saveJournalEntryToFirestore(targetUid, { ...loc, userId: targetUid }).catch(() => {});
         }
       }
@@ -161,7 +151,6 @@ export async function taiVaDongBoJournal(userId?: string): Promise<{
       luuDanhSachJournalLocal(combined);
       return { entries: combined, fromFirestore: true };
     } else if (localList.length > 0) {
-      // Nếu Firestore chưa có gì nhưng local có, đồng bộ local lên Firestore
       for (const entry of localList) {
         saveJournalEntryToFirestore(targetUid, { ...entry, userId: targetUid }).catch(() => {});
       }
@@ -200,10 +189,12 @@ export async function capNhatGhiChuCamXuc(
   luuDanhSachJournalLocal(localList);
 
   const uid = getCurrentUserId();
+  const token = AuthService.getToken();
   let synced = false;
 
-  if (uid) {
+  if (uid && token?.startsWith("fb-")) {
     try {
+      const { saveJournalEntryToFirestore } = await import("./firebase");
       await saveJournalEntryToFirestore(uid, updatedEntry);
       synced = true;
     } catch (err) {
@@ -225,9 +216,11 @@ export async function xoaMucNhatKy(
   luuDanhSachJournalLocal(filtered);
 
   const uid = getCurrentUserId();
+  const token = AuthService.getToken();
   let synced = false;
-  if (uid) {
+  if (uid && token?.startsWith("fb-")) {
     try {
+      const { deleteJournalEntryFromFirestore } = await import("./firebase");
       await deleteJournalEntryFromFirestore(uid, journalId);
       synced = true;
     } catch (err) {
@@ -266,9 +259,12 @@ export function ghiNhanOutfitVaoNhatKy(outfit: OutfitSaved): void {
   luuDanhSachJournalLocal(updatedList);
 
   const uid = getCurrentUserId();
-  if (uid) {
-    saveJournalEntryToFirestore(uid, entry).catch((err) => {
-      console.warn("Lỗi lưu nhật ký lên Firestore khi hoàn tất phối đồ:", err);
-    });
+  const token = AuthService.getToken();
+  if (uid && token?.startsWith("fb-")) {
+    import("./firebase")
+      .then(({ saveJournalEntryToFirestore }) => saveJournalEntryToFirestore(uid, entry))
+      .catch((err) => {
+        console.warn("Lỗi lưu nhật ký lên Firestore khi hoàn tất phối đồ:", err);
+      });
   }
 }

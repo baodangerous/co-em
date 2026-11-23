@@ -24,7 +24,7 @@ import {
   X,
 } from "lucide-react";
 import { useAuth } from "../lib/auth";
-import { isCurrentUserAdmin } from "../lib/adminStore";
+import { isCurrentUserAdmin } from "../lib/adminAuth";
 import FolkAudioControl from "./FolkAudioControl";
 import { playFolkScreenTransition } from "../lib/audio";
 import {

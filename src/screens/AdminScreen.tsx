@@ -54,7 +54,7 @@ export default function AdminScreen({
   onOpenCostumeDetail,
 }: AdminScreenProps = {}) {
   const [activeTab, setActiveTab] = useState<AdminTab>("duyet_bai");
-  const [adminAccount, setAdminAccount] = useState("admin@vietphucremix.vn");
+  const [adminAccount, setAdminAccount] = useState("");
   const [adminPassword, setAdminPassword] = useState("");
   const [loginError, setLoginError] = useState("");
   const { toastMsg, showToast, clearToast } = useToastNotification();
@@ -107,7 +107,7 @@ export default function AdminScreen({
           </div>
 
           <p className="text-xs text-[var(--chu-phu)] m-0 leading-relaxed">
-            Khu vực Quản trị Dự án chỉ dành riêng cho tài khoản Quản trị viên (Admin), không hiển thị cho người dùng thông thường. Vui lòng đăng nhập tài khoản Admin để tiếp tục.
+            Đăng nhập tài khoản Quản trị viên để tiếp tục.
           </p>
 
           <form onSubmit={handleDirectAdminLogin} className="space-y-3">
@@ -133,27 +133,10 @@ export default function AdminScreen({
                 type="password"
                 value={adminPassword}
                 onChange={(e) => setAdminPassword(e.target.value)}
-                placeholder="Nhập mật khẩu (VD: admin2026)"
+                placeholder="Nhập mật khẩu quản trị"
                 required
                 className="w-full px-3.5 py-2.5 rounded-xl bg-[var(--nen-the-phu)] border border-[var(--vien-the)] text-xs sm:text-sm text-[var(--chu-chinh)]"
               />
-            </div>
-
-            <div className="p-2.5 rounded-xl bg-emerald-500/10 border border-emerald-500/30 flex items-center justify-between gap-2 text-[11px]">
-              <div>
-                <div>TK: <strong>admin@vietphucremix.vn</strong></div>
-                <div>MK: <strong>admin2026</strong></div>
-              </div>
-              <button
-                type="button"
-                onClick={() => {
-                  setAdminAccount("admin@vietphucremix.vn");
-                  setAdminPassword("admin2026");
-                }}
-                className="px-2.5 py-1.5 rounded-lg bg-emerald-600 text-white font-semibold cursor-pointer"
-              >
-                Điền nhanh
-              </button>
             </div>
 
             {loginError && (
@@ -196,10 +179,10 @@ export default function AdminScreen({
                   </span>
                 </div>
                 <h1 className="font-serif text-xl sm:text-2xl font-bold text-[var(--chu-chinh)] m-0 mt-0.5">
-                  Trung Tâm Quản Trị Dự Án Việt Phục Remix
+                  Quản Trị Việt Phục Remix
                 </h1>
                 <p className="text-xs text-[var(--chu-phu)] m-0 mt-0.5">
-                  Quản lý tài khoản phân quyền, duyệt bài cộng đồng, danh mục trang phục, làng nghề và đơn đăng ký cam kết Workshop
+                  Phân quyền, duyệt bài, trang phục, làng nghề & workshop
                 </p>
               </div>
             </div>

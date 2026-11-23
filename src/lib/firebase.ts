@@ -94,7 +94,7 @@ export function handleFirestoreError(error: unknown, operationType: OperationTyp
   throw new Error(JSON.stringify(errInfo));
 }
 
-// Kiểm tra kết nối Firestore lúc khởi động theo tiêu chuẩn kỹ thuật
+// Kiểm tra kết nối Firestore theo yêu cầu (gọi lười khi thực sự dùng Firebase)
 export async function validateFirestoreConnection(): Promise<boolean> {
   try {
     await getDocFromServer(doc(db, "test", "connection"));
@@ -104,13 +104,9 @@ export async function validateFirestoreConnection(): Promise<boolean> {
       console.warn("Firestore: Không thể kết nối trực tiếp hoặc client đang offline.");
       return false;
     }
-    // Lỗi quyền permission-denied khi đọc test doc là bình thường vì rules bảo vệ
     return true;
   }
 }
-
-// Gọi kiểm tra khi nạp module
-validateFirestoreConnection().catch(() => {});
 
 /**
  * Đăng nhập bằng tài khoản Google (Firebase Auth Popup)
@@ -220,6 +216,20 @@ export async function getUserOutfitsFromFirestore(userId: string): Promise<Recor
     return snap.docs.map((d) => ({ id: d.id, ...d.data() }));
   } catch (err) {
     handleFirestoreError(err, OperationType.LIST, path);
+  }
+}
+
+export async function deleteUserOutfitFromFirestore(
+  userId: string,
+  outfitId: string
+): Promise<void> {
+  if (!userId || !outfitId) return;
+  if (!auth.currentUser || auth.currentUser.uid !== userId) return;
+  const path = `users/${userId}/outfits/${outfitId}`;
+  try {
+    await deleteDoc(doc(db, "users", userId, "outfits", outfitId));
+  } catch (err) {
+    handleFirestoreError(err, OperationType.DELETE, path);
   }
 }
 

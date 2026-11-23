@@ -3,12 +3,14 @@
  * SPDX-License-Identifier: Apache-2.0
  *
  * HỆ THỐNG CƠ SỞ DỮ LIỆU ĐỒNG BỘ & CÔ LẬP DỮ LIỆU NGƯỜI DÙNG (DATABASE SYSTEM)
+ * - Khởi tạo SQLite đồng bộ (WAL mode) hiệu năng cao, không đọc/ghi JSON toàn cục lặp lại mỗi request
+ * - Tự động dọn dẹp OTP/Session hết hạn và giới hạn kích thước AI cache
  * - Cô lập nghiêm ngặt dữ liệu cá nhân (Outfits, Orders, Characters) theo userId
- * - Ngăn chặn truy cập trái phép hoặc rò rỉ dữ liệu giữa các tài khoản
  */
 
 import fs from "fs";
 import path from "path";
+import { createRequire } from "module";
 import { fileURLToPath } from "url";
 import {
   createEmptyJsonStore,
@@ -37,6 +39,7 @@ export type {
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 const DATA_DIR = path.resolve(__dirname, "../data_store");
+const require = createRequire(import.meta.url);
 
 if (!fs.existsSync(DATA_DIR)) {
   fs.mkdirSync(DATA_DIR, { recursive: true });
@@ -47,6 +50,8 @@ class DatabaseManager {
   private jsonBackupFile = path.join(DATA_DIR, "coem_heritage.json");
   private sqliteDb: any = null;
   private isSqliteActive = false;
+  private memStore: JsonStoreShape | null = null;
+  private flushTimer: NodeJS.Timeout | null = null;
 
   constructor() {
     this.initDatabase();
@@ -54,26 +59,32 @@ class DatabaseManager {
 
   private initDatabase() {
     try {
-      const sqliteModule = Function("return import('node:sqlite')")();
-      sqliteModule
-        .then(({ DatabaseSync }: any) => {
-          try {
-            this.sqliteDb = new DatabaseSync(this.dbFile);
-            this.sqliteDb.exec(SQLITE_SCHEMA_DDL);
-            for (const table of ["characters", "outfits", "memories", "orders"]) {
-              try {
-                this.sqliteDb.exec(`ALTER TABLE ${table} ADD COLUMN user_id TEXT;`);
-              } catch {
-                // Column already exists
-              }
-            }
-            this.isSqliteActive = true;
-            this.seedInitialData();
-          } catch {
-            this.fallbackToJson();
-          }
-        })
-        .catch(() => this.fallbackToJson());
+      const { DatabaseSync } = require("node:sqlite");
+      this.sqliteDb = new DatabaseSync(this.dbFile);
+      this.sqliteDb.exec("PRAGMA journal_mode = WAL; PRAGMA synchronous = NORMAL; PRAGMA temp_store = MEMORY;");
+      this.sqliteDb.exec(SQLITE_SCHEMA_DDL);
+
+      for (const migration of [
+        "ALTER TABLE users ADD COLUMN role TEXT DEFAULT 'member';",
+        "ALTER TABLE sessions ADD COLUMN role TEXT DEFAULT 'member';",
+        "ALTER TABLE characters ADD COLUMN user_id TEXT;",
+        "ALTER TABLE outfits ADD COLUMN user_id TEXT;",
+        "ALTER TABLE memories ADD COLUMN user_id TEXT;",
+        "ALTER TABLE orders ADD COLUMN user_id TEXT;",
+      ]) {
+        try {
+          this.sqliteDb.exec(migration);
+        } catch {
+          // Column already exists
+        }
+      }
+
+      this.isSqliteActive = true;
+      this.seedInitialData();
+      this.pruneExpiredRecords();
+
+      const timer = setInterval(() => this.pruneExpiredRecords(), 10 * 60 * 1000);
+      timer.unref?.();
     } catch {
       this.fallbackToJson();
     }
@@ -81,10 +92,52 @@ class DatabaseManager {
 
   private fallbackToJson() {
     this.isSqliteActive = false;
+    this.memStore = this.loadJsonFromDisk();
     if (!fs.existsSync(this.jsonBackupFile)) {
-      fs.writeFileSync(this.jsonBackupFile, JSON.stringify(createEmptyJsonStore(), null, 2), "utf-8");
+      this.flushJsonSync();
     }
     this.seedInitialData();
+    this.pruneExpiredRecords();
+  }
+
+  private loadJsonFromDisk(): JsonStoreShape {
+    try {
+      if (!fs.existsSync(this.jsonBackupFile)) return createEmptyJsonStore();
+      const parsed = JSON.parse(fs.readFileSync(this.jsonBackupFile, "utf-8"));
+      return { ...createEmptyJsonStore(), ...parsed };
+    } catch {
+      return createEmptyJsonStore();
+    }
+  }
+
+  private getMemStore(): JsonStoreShape {
+    if (!this.memStore) {
+      this.memStore = this.loadJsonFromDisk();
+    }
+    return this.memStore;
+  }
+
+  private flushJsonSync(): void {
+    if (!this.memStore) return;
+    const tempFile = `${this.jsonBackupFile}.tmp`;
+    fs.writeFileSync(tempFile, JSON.stringify(this.memStore), "utf-8");
+    fs.renameSync(tempFile, this.jsonBackupFile);
+  }
+
+  private scheduleJsonFlush(): void {
+    if (this.isSqliteActive) return;
+    if (this.flushTimer) clearTimeout(this.flushTimer);
+    this.flushTimer = setTimeout(() => {
+      this.flushTimer = null;
+      if (!this.memStore) return;
+      const payload = JSON.stringify(this.memStore);
+      const tempFile = `${this.jsonBackupFile}.tmp`;
+      fs.promises
+        .writeFile(tempFile, payload, "utf-8")
+        .then(() => fs.promises.rename(tempFile, this.jsonBackupFile))
+        .catch(() => {});
+    }, 250);
+    this.flushTimer.unref?.();
   }
 
   private seedInitialData() {
@@ -95,20 +148,35 @@ class DatabaseManager {
     }
   }
 
-  private readJsonStore(): JsonStoreShape {
-    try {
-      if (!fs.existsSync(this.jsonBackupFile)) return createEmptyJsonStore();
-      const parsed = JSON.parse(fs.readFileSync(this.jsonBackupFile, "utf-8"));
-      return { ...createEmptyJsonStore(), ...parsed };
-    } catch {
-      return createEmptyJsonStore();
+  public pruneExpiredRecords(): void {
+    const now = Date.now();
+    if (this.isSqliteActive && this.sqliteDb) {
+      try {
+        this.sqliteDb.prepare(`DELETE FROM otp_codes WHERE expires_at < ?`).run(now);
+        this.sqliteDb.prepare(`DELETE FROM sessions WHERE expires_at < ?`).run(now);
+      } catch {
+        // Ignore cleanup errors
+      }
+      return;
     }
+
+    const json = this.getMemStore();
+    let changed = false;
+    const beforeOtp = json.otp_codes.length;
+    json.otp_codes = json.otp_codes.filter((o) => o.expires_at >= now);
+    if (json.otp_codes.length !== beforeOtp) changed = true;
+
+    for (const [token, sess] of Object.entries(json.sessions)) {
+      if (sess.expires_at < now) {
+        delete json.sessions[token];
+        changed = true;
+      }
+    }
+    if (changed) this.scheduleJsonFlush();
   }
 
-  private writeJsonStore(data: JsonStoreShape): void {
-    const tempFile = `${this.jsonBackupFile}.tmp`;
-    fs.writeFileSync(tempFile, JSON.stringify(data, null, 2), "utf-8");
-    fs.renameSync(tempFile, this.jsonBackupFile);
+  public getEngineInfo(): "sqlite" | "json" {
+    return this.isSqliteActive ? "sqlite" : "json";
   }
 
   // 1. USERS & OTP & SESSIONS
@@ -116,161 +184,152 @@ class DatabaseManager {
     if (this.isSqliteActive && this.sqliteDb) {
       this.sqliteDb
         .prepare(
-          `INSERT INTO users (id, email, name, avatar, created_at, last_login)
-           VALUES (?, ?, ?, ?, ?, ?)
-           ON CONFLICT(id) DO UPDATE SET email=excluded.email, name=excluded.name, avatar=excluded.avatar, last_login=excluded.last_login`
+          `INSERT INTO users (id, email, name, role, avatar, created_at, last_login)
+           VALUES (?, ?, ?, ?, ?, ?, ?)
+           ON CONFLICT(id) DO UPDATE SET email=excluded.email, name=excluded.name, role=excluded.role, avatar=excluded.avatar, last_login=excluded.last_login`
         )
-        .run(user.id, user.email, user.name, user.avatar || "", user.created_at, user.last_login);
+        .run(
+          user.id,
+          user.email,
+          user.name,
+          user.role || "member",
+          user.avatar || "",
+          user.created_at,
+          user.last_login
+        );
+      return;
     }
-    const json = this.readJsonStore();
+    const json = this.getMemStore();
     json.users[user.id] = user;
-    this.writeJsonStore(json);
+    this.scheduleJsonFlush();
   }
 
   public getUserByEmail(email: string): UserRecord | null {
     const norm = email.toLowerCase().trim();
     if (this.isSqliteActive && this.sqliteDb) {
-      try {
-        const row = this.sqliteDb.prepare(`SELECT * FROM users WHERE LOWER(email) = ?`).get(norm);
-        if (row) return row as UserRecord;
-      } catch {
-        // Fallback
-      }
+      const row = this.sqliteDb.prepare(`SELECT * FROM users WHERE LOWER(email) = ?`).get(norm);
+      return (row as UserRecord) || null;
     }
-    const json = this.readJsonStore();
+    const json = this.getMemStore();
     return Object.values(json.users).find((u) => u.email.toLowerCase().trim() === norm) || null;
   }
 
   public getUserById(id: string): UserRecord | null {
     if (this.isSqliteActive && this.sqliteDb) {
-      try {
-        const row = this.sqliteDb.prepare(`SELECT * FROM users WHERE id = ?`).get(id);
-        if (row) return row as UserRecord;
-      } catch {
-        // Fallback
-      }
+      const row = this.sqliteDb.prepare(`SELECT * FROM users WHERE id = ?`).get(id);
+      return (row as UserRecord) || null;
     }
-    return this.readJsonStore().users[id] || null;
+    return this.getMemStore().users[id] || null;
   }
 
   public saveOtp(otp: OtpRecord): void {
     const normEmail = otp.email.toLowerCase().trim();
     if (this.isSqliteActive && this.sqliteDb) {
+      this.sqliteDb.prepare(`DELETE FROM otp_codes WHERE LOWER(email) = ?`).run(normEmail);
       this.sqliteDb
         .prepare(
           `INSERT INTO otp_codes (id, email, code, expires_at, attempts, created_at)
-           VALUES (?, ?, ?, ?, ?, ?)
-           ON CONFLICT(id) DO UPDATE SET code=excluded.code, expires_at=excluded.expires_at, attempts=excluded.attempts`
+           VALUES (?, ?, ?, ?, ?, ?)`
         )
         .run(otp.id, normEmail, otp.code, otp.expires_at, otp.attempts, otp.created_at);
+      return;
     }
-    const json = this.readJsonStore();
+    const json = this.getMemStore();
     json.otp_codes = json.otp_codes.filter((o) => o.email.toLowerCase() !== normEmail);
     json.otp_codes.push(otp);
-    this.writeJsonStore(json);
+    this.scheduleJsonFlush();
   }
 
   public getLatestOtp(email: string): OtpRecord | null {
     const norm = email.toLowerCase().trim();
     if (this.isSqliteActive && this.sqliteDb) {
-      try {
-        const row = this.sqliteDb
-          .prepare(`SELECT * FROM otp_codes WHERE LOWER(email) = ? ORDER BY expires_at DESC LIMIT 1`)
-          .get(norm);
-        if (row) return row as OtpRecord;
-      } catch {
-        // Fallback
-      }
+      const row = this.sqliteDb
+        .prepare(`SELECT * FROM otp_codes WHERE LOWER(email) = ? ORDER BY expires_at DESC LIMIT 1`)
+        .get(norm);
+      return (row as OtpRecord) || null;
     }
-    const list = this.readJsonStore().otp_codes.filter((o) => o.email.toLowerCase() === norm);
+    const list = this.getMemStore().otp_codes.filter((o) => o.email.toLowerCase() === norm);
     return list.sort((a, b) => b.expires_at - a.expires_at)[0] || null;
   }
 
   public incrementOtpAttempts(id: string): void {
     if (this.isSqliteActive && this.sqliteDb) {
-      try {
-        this.sqliteDb.prepare(`UPDATE otp_codes SET attempts = attempts + 1 WHERE id = ?`).run(id);
-      } catch {
-        // Fallback
-      }
+      this.sqliteDb.prepare(`UPDATE otp_codes SET attempts = attempts + 1 WHERE id = ?`).run(id);
+      return;
     }
-    const json = this.readJsonStore();
+    const json = this.getMemStore();
     const target = json.otp_codes.find((o) => o.id === id);
     if (target) {
       target.attempts = (target.attempts || 0) + 1;
-      this.writeJsonStore(json);
+      this.scheduleJsonFlush();
     }
   }
 
   public deleteOtp(id: string): void {
     if (this.isSqliteActive && this.sqliteDb) {
-      try {
-        this.sqliteDb.prepare(`DELETE FROM otp_codes WHERE id = ?`).run(id);
-      } catch {
-        // Fallback
-      }
+      this.sqliteDb.prepare(`DELETE FROM otp_codes WHERE id = ?`).run(id);
+      return;
     }
-    const json = this.readJsonStore();
+    const json = this.getMemStore();
     json.otp_codes = json.otp_codes.filter((o) => o.id !== id);
-    this.writeJsonStore(json);
+    this.scheduleJsonFlush();
   }
 
   public saveSession(session: SessionRecord): void {
     if (this.isSqliteActive && this.sqliteDb) {
       this.sqliteDb
         .prepare(
-          `INSERT INTO sessions (token, user_id, email, expires_at, created_at)
-           VALUES (?, ?, ?, ?, ?)
-           ON CONFLICT(token) DO UPDATE SET expires_at=excluded.expires_at`
+          `INSERT INTO sessions (token, user_id, email, role, expires_at, created_at)
+           VALUES (?, ?, ?, ?, ?, ?)
+           ON CONFLICT(token) DO UPDATE SET expires_at=excluded.expires_at, role=excluded.role`
         )
-        .run(session.token, session.user_id, session.email, session.expires_at, session.created_at);
+        .run(
+          session.token,
+          session.user_id,
+          session.email,
+          session.role || "member",
+          session.expires_at,
+          session.created_at
+        );
+      return;
     }
-    const json = this.readJsonStore();
+    const json = this.getMemStore();
     json.sessions[session.token] = session;
-    this.writeJsonStore(json);
+    this.scheduleJsonFlush();
   }
 
   public getSession(token: string): SessionRecord | null {
     if (!token) return null;
-    const json = this.readJsonStore();
-    const jsonSession = json.sessions[token];
-    if (jsonSession) {
-      if (jsonSession.expires_at < Date.now()) {
+    if (this.isSqliteActive && this.sqliteDb) {
+      const row = this.sqliteDb.prepare(`SELECT * FROM sessions WHERE token = ?`).get(token) as
+        | SessionRecord
+        | undefined;
+      if (!row) return null;
+      if (row.expires_at < Date.now()) {
         this.deleteSession(token);
         return null;
       }
-      return jsonSession;
+      return row;
     }
-    if (this.isSqliteActive && this.sqliteDb) {
-      try {
-        const row = this.sqliteDb.prepare(`SELECT * FROM sessions WHERE token = ?`).get(token) as
-          | SessionRecord
-          | undefined;
-        if (row) {
-          if (row.expires_at < Date.now()) {
-            this.deleteSession(token);
-            return null;
-          }
-          return row;
-        }
-      } catch {
-        // Fallback
-      }
+
+    const json = this.getMemStore();
+    const jsonSession = json.sessions[token];
+    if (!jsonSession) return null;
+    if (jsonSession.expires_at < Date.now()) {
+      this.deleteSession(token);
+      return null;
     }
-    return null;
+    return jsonSession;
   }
 
   public deleteSession(token: string): void {
     if (this.isSqliteActive && this.sqliteDb) {
-      try {
-        this.sqliteDb.prepare(`DELETE FROM sessions WHERE token = ?`).run(token);
-      } catch {
-        // Fallback
-      }
+      this.sqliteDb.prepare(`DELETE FROM sessions WHERE token = ?`).run(token);
+      return;
     }
-    const json = this.readJsonStore();
+    const json = this.getMemStore();
     delete json.sessions[token];
-    this.writeJsonStore(json);
+    this.scheduleJsonFlush();
   }
 
   // 2. CHARACTERS (Cô lập theo chủ sở hữu)
@@ -280,7 +339,8 @@ class DatabaseManager {
         .prepare(
           `INSERT INTO characters (id, user_id, name, gioi, tuoi, vocDang, tongDa, toc, huongNhin, updated_at)
            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-           ON CONFLICT(id) DO UPDATE SET user_id=excluded.user_id, name=excluded.name, gioi=excluded.gioi, tuoi=excluded.tuoi, vocDang=excluded.vocDang, tongDa=excluded.tongDa, toc=excluded.toc, huongNhin=excluded.huongNhin, updated_at=excluded.updated_at`
+           ON CONFLICT(id) DO UPDATE SET user_id=excluded.user_id, name=excluded.name, gioi=excluded.gioi, tuoi=excluded.tuoi, vocDang=excluded.vocDang, tongDa=excluded.tongDa, toc=excluded.toc, huongNhin=excluded.huongNhin, updated_at=excluded.updated_at
+           WHERE characters.user_id = excluded.user_id OR characters.user_id = '' OR characters.user_id IS NULL`
         )
         .run(
           record.id,
@@ -294,43 +354,39 @@ class DatabaseManager {
           record.huongNhin,
           record.updated_at
         );
+      return;
     }
-    const json = this.readJsonStore();
+    const json = this.getMemStore();
+    const existing = json.characters[record.id];
+    if (existing && existing.user_id && existing.user_id !== record.user_id) return;
     json.characters[record.id] = record;
-    this.writeJsonStore(json);
+    this.scheduleJsonFlush();
   }
 
   public getCharacter(id = "default", requestUserId?: string): CharacterRecord | null {
-    const json = this.readJsonStore();
-    const record = json.characters[id];
-    if (record) {
-      if (record.user_id && record.user_id !== requestUserId) return null;
-      return record;
-    }
     if (this.isSqliteActive && this.sqliteDb) {
-      try {
-        const row = this.sqliteDb.prepare(`SELECT * FROM characters WHERE id = ?`).get(id) as
-          | CharacterRecord
-          | undefined;
-        if (row) {
-          if (row.user_id && row.user_id !== requestUserId) return null;
-          return row;
-        }
-      } catch {
-        // Fallback
-      }
+      const row = this.sqliteDb.prepare(`SELECT * FROM characters WHERE id = ?`).get(id) as
+        | CharacterRecord
+        | undefined;
+      if (!row) return null;
+      if (row.user_id && row.user_id !== requestUserId) return null;
+      return row;
     }
-    return null;
+    const record = this.getMemStore().characters[id];
+    if (!record) return null;
+    if (record.user_id && record.user_id !== requestUserId) return null;
+    return record;
   }
 
-  // 3. OUTFITS (Cô lập dữ liệu cá nhân, tuyệt đối không trả về toàn bộ CSDL khi thiếu userId)
+  // 3. OUTFITS (Cô lập dữ liệu cá nhân theo userId)
   public saveOutfit(record: OutfitRecord): void {
     if (this.isSqliteActive && this.sqliteDb) {
       this.sqliteDb
         .prepare(
           `INSERT INTO outfits (id, user_id, title, trang_phuc_id, mau_hex, phu_kien_ids, nhan_vat_config, notes, created_at)
            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
-           ON CONFLICT(id) DO UPDATE SET user_id=excluded.user_id, title=excluded.title, trang_phuc_id=excluded.trang_phuc_id, mau_hex=excluded.mau_hex, phu_kien_ids=excluded.phu_kien_ids, nhan_vat_config=excluded.nhan_vat_config, notes=excluded.notes`
+           ON CONFLICT(id) DO UPDATE SET title=excluded.title, trang_phuc_id=excluded.trang_phuc_id, mau_hex=excluded.mau_hex, phu_kien_ids=excluded.phu_kien_ids, nhan_vat_config=excluded.nhan_vat_config, notes=excluded.notes
+           WHERE outfits.user_id = excluded.user_id OR outfits.user_id = '' OR outfits.user_id IS NULL`
         )
         .run(
           record.id,
@@ -343,48 +399,48 @@ class DatabaseManager {
           record.notes || "",
           record.created_at
         );
+      return;
     }
-    const json = this.readJsonStore();
+    const json = this.getMemStore();
     const idx = json.outfits.findIndex((o) => o.id === record.id);
-    if (idx >= 0) json.outfits[idx] = record;
-    else json.outfits.unshift(record);
-    this.writeJsonStore(json);
+    if (idx >= 0) {
+      const existing = json.outfits[idx];
+      if (existing.user_id && existing.user_id !== record.user_id) return;
+      json.outfits[idx] = record;
+    } else {
+      json.outfits.unshift(record);
+    }
+    this.scheduleJsonFlush();
   }
 
   public getAllOutfits(userId?: string): OutfitRecord[] {
     if (!userId) return [];
     if (this.isSqliteActive && this.sqliteDb) {
-      try {
-        const rows = this.sqliteDb
-          .prepare(`SELECT * FROM outfits WHERE user_id = ? ORDER BY created_at DESC`)
-          .all(userId);
-        return rows.map((r: any) => ({
-          ...r,
-          phu_kien_ids: JSON.parse(r.phu_kien_ids || "[]"),
-          nhan_vat_config: JSON.parse(r.nhan_vat_config || "{}"),
-        }));
-      } catch {
-        // Fallback
-      }
+      const rows = this.sqliteDb
+        .prepare(`SELECT * FROM outfits WHERE user_id = ? ORDER BY created_at DESC`)
+        .all(userId);
+      return rows.map((r: any) => ({
+        ...r,
+        phu_kien_ids: JSON.parse(r.phu_kien_ids || "[]"),
+        nhan_vat_config: JSON.parse(r.nhan_vat_config || "{}"),
+      }));
     }
-    return this.readJsonStore().outfits.filter((o) => o.user_id === userId);
+    return this.getMemStore().outfits.filter((o) => o.user_id === userId);
   }
 
   public deleteOutfit(id: string, userId?: string): boolean {
     if (!userId) return false;
-    const json = this.readJsonStore();
+    if (this.isSqliteActive && this.sqliteDb) {
+      const info = this.sqliteDb
+        .prepare(`DELETE FROM outfits WHERE id = ? AND user_id = ?`)
+        .run(id, userId);
+      return (info?.changes || 0) > 0;
+    }
+    const json = this.getMemStore();
     const target = json.outfits.find((o) => o.id === id);
     if (!target || target.user_id !== userId) return false;
-
-    if (this.isSqliteActive && this.sqliteDb) {
-      try {
-        this.sqliteDb.prepare(`DELETE FROM outfits WHERE id = ? AND user_id = ?`).run(id, userId);
-      } catch {
-        // Fallback
-      }
-    }
     json.outfits = json.outfits.filter((o) => o.id !== id);
-    this.writeJsonStore(json);
+    this.scheduleJsonFlush();
     return true;
   }
 
@@ -406,29 +462,30 @@ class DatabaseManager {
           record.era,
           record.created_at
         );
+      return;
     }
-    const json = this.readJsonStore();
+    const json = this.getMemStore();
     const idx = json.memories.findIndex((m) => m.id === record.id);
     if (idx >= 0) json.memories[idx] = record;
     else json.memories.unshift(record);
-    this.writeJsonStore(json);
+    this.scheduleJsonFlush();
   }
 
   public getAllMemories(): MemoryRecord[] {
     if (this.isSqliteActive && this.sqliteDb) {
-      try {
-        return this.sqliteDb
-          .prepare(`SELECT * FROM memories ORDER BY created_at DESC LIMIT 100`)
-          .all() as MemoryRecord[];
-      } catch {
-        // Fallback
-      }
+      return this.sqliteDb
+        .prepare(`SELECT * FROM memories ORDER BY created_at DESC LIMIT 100`)
+        .all() as MemoryRecord[];
     }
-    return this.readJsonStore().memories.slice(0, 100);
+    return this.getMemStore().memories.slice(0, 100);
   }
 
   public getMemoryById(id: string): MemoryRecord | null {
-    return this.getAllMemories().find((m) => m.id === id) || null;
+    if (this.isSqliteActive && this.sqliteDb) {
+      const row = this.sqliteDb.prepare(`SELECT * FROM memories WHERE id = ?`).get(id);
+      return (row as MemoryRecord) || null;
+    }
+    return this.getMemStore().memories.find((m) => m.id === id) || null;
   }
 
   // 5. ORDERS (Cô lập nghiêm ngặt theo userId)
@@ -449,27 +506,24 @@ class DatabaseManager {
           record.status,
           record.created_at
         );
+      return;
     }
-    const json = this.readJsonStore();
+    const json = this.getMemStore();
     json.orders.unshift(record);
-    this.writeJsonStore(json);
+    this.scheduleJsonFlush();
   }
 
   public getAllOrders(userId?: string): OrderRecord[] {
     if (!userId) return [];
     if (this.isSqliteActive && this.sqliteDb) {
-      try {
-        return this.sqliteDb
-          .prepare(`SELECT * FROM orders WHERE user_id = ? ORDER BY created_at DESC`)
-          .all(userId) as OrderRecord[];
-      } catch {
-        // Fallback
-      }
+      return this.sqliteDb
+        .prepare(`SELECT * FROM orders WHERE user_id = ? ORDER BY created_at DESC`)
+        .all(userId) as OrderRecord[];
     }
-    return this.readJsonStore().orders.filter((o) => o.user_id === userId);
+    return this.getMemStore().orders.filter((o) => o.user_id === userId);
   }
 
-  // 6. AI CACHE
+  // 6. AI CACHE (Giới hạn tối đa 400 mục)
   public getAiCache(key: string): unknown | null {
     if (this.isSqliteActive && this.sqliteDb) {
       try {
@@ -478,10 +532,11 @@ class DatabaseManager {
           .get(key) as { response_data: string } | undefined;
         if (row?.response_data) return JSON.parse(row.response_data);
       } catch {
-        // Fallback
+        return null;
       }
+      return null;
     }
-    return this.readJsonStore().ai_cache[key] || null;
+    return this.getMemStore().ai_cache[key] || null;
   }
 
   public setAiCache(key: string, data: unknown): void {
@@ -491,16 +546,32 @@ class DatabaseManager {
           .prepare(
             `INSERT INTO ai_cache (cache_key, response_data, created_at)
              VALUES (?, ?, ?)
-             ON CONFLICT(cache_key) DO UPDATE SET response_data=excluded.response_data`
+             ON CONFLICT(cache_key) DO UPDATE SET response_data=excluded.response_data, created_at=excluded.created_at`
           )
           .run(key, JSON.stringify(data), new Date().toISOString());
+
+        const countRow = this.sqliteDb
+          .prepare(`SELECT COUNT(*) as total FROM ai_cache`)
+          .get() as { total: number };
+        if (countRow && countRow.total > 400) {
+          this.sqliteDb
+            .prepare(
+              `DELETE FROM ai_cache WHERE cache_key IN (SELECT cache_key FROM ai_cache ORDER BY created_at ASC LIMIT 50)`
+            )
+            .run();
+        }
       } catch {
-        // Fallback
+        // Ignore cache write errors
       }
+      return;
     }
-    const json = this.readJsonStore();
+    const json = this.getMemStore();
     json.ai_cache[key] = data;
-    this.writeJsonStore(json);
+    const keys = Object.keys(json.ai_cache);
+    if (keys.length > 400) {
+      delete json.ai_cache[keys[0]];
+    }
+    this.scheduleJsonFlush();
   }
 }
 

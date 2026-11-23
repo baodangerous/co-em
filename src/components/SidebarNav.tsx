@@ -31,7 +31,7 @@ import {
   ShieldCheck,
   type LucideIcon,
 } from "lucide-react";
-import { isCurrentUserAdmin, ADMIN_DATA_CHANGE_EVENT } from "../lib/adminStore";
+import { isCurrentUserAdmin, ADMIN_DATA_CHANGE_EVENT } from "../lib/adminAuth";
 import { AUTH_CHANGE_EVENT } from "../lib/auth";
 
 export type Screen =

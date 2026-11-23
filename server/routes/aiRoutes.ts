@@ -18,6 +18,18 @@ const getApiKey = (): string => {
   return process.env.API_KEY || process.env.GEMINI_API_KEY || "";
 };
 
+function withTimeout<T>(promise: Promise<T>, timeoutMs = 14000): Promise<T> {
+  let timer: NodeJS.Timeout | undefined;
+  return Promise.race([
+    promise,
+    new Promise<never>((_, reject) => {
+      timer = setTimeout(() => reject(new Error("AI request timeout")), timeoutMs);
+    }),
+  ]).finally(() => {
+    if (timer) clearTimeout(timer);
+  });
+}
+
 function hashPrompt(str: string): string {
   let hash = 5381;
   for (let i = 0; i < str.length; i++) {
@@ -152,13 +164,16 @@ Return ONLY valid JSON:
 
     for (const vModel of visionModels) {
       try {
-        const vRes: any = await ai.models.generateContent({
-          model: vModel,
-          contents: {
-            parts: [{ inlineData: { data: base64Data, mimeType } }, { text: visionPrompt }],
-          },
-          config: { responseMimeType: "application/json", temperature: 0.05 },
-        });
+        const vRes: any = await withTimeout(
+          ai.models.generateContent({
+            model: vModel,
+            contents: {
+              parts: [{ inlineData: { data: base64Data, mimeType } }, { text: visionPrompt }],
+            },
+            config: { responseMimeType: "application/json", temperature: 0.05 },
+          }),
+          12000
+        );
 
         let rawJson = (vRes?.text || "").trim();
         if (rawJson.startsWith("```")) {
@@ -350,11 +365,14 @@ aiRouter.post("/gemini", async (req: Request, res: Response) => {
 
     for (const model of modelsToTry) {
       try {
-        response = await ai.models.generateContent({
-          model,
-          contents: parts.join("\n\n"),
-          config,
-        });
+        response = await withTimeout(
+          ai.models.generateContent({
+            model,
+            contents: parts.join("\n\n"),
+            config,
+          }),
+          14000
+        );
         if (response && response.text) break;
       } catch (err) {
         lastErr = err;
@@ -414,11 +432,14 @@ aiRouter.post("/maps/heritage-places", async (req: Request, res: Response) => {
 
   try {
     const ai = new GoogleGenAI({ apiKey });
-    const response = await ai.models.generateContent({
-      model: "gemini-3.5-flash",
-      contents: `Bạn là trợ lý văn hóa di sản Việt Phục. Hãy sử dụng công cụ Google Maps để tìm kiếm thông tin địa điểm thực tế, địa chỉ chính xác và nét đặc sắc văn hóa trang phục truyền thống của: ${queryText}. Giới thiệu ngắn gọn, súc tích và chính xác.`,
-      config: { tools: [{ googleMaps: {} }] },
-    });
+    const response = await withTimeout(
+      ai.models.generateContent({
+        model: "gemini-3.5-flash",
+        contents: `Bạn là trợ lý văn hóa di sản Việt Phục. Hãy sử dụng công cụ Google Maps để tìm kiếm thông tin địa điểm thực tế, địa chỉ chính xác và nét đặc sắc văn hóa trang phục truyền thống của: ${queryText}. Giới thiệu ngắn gọn, súc tích và chính xác.`,
+        config: { tools: [{ googleMaps: {} }] },
+      }),
+      14000
+    );
 
     const text = response.text || "";
     const groundingMetadata = (response.candidates?.[0] as any)?.groundingMetadata || null;

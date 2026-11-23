@@ -262,7 +262,7 @@ export default function CostumeDetailScreen({
                 <div className="p-3 rounded-xl bg-[var(--nen-the-phu)] border border-[var(--vien-the)] space-y-1.5 text-xs">
                   <div className="flex items-center gap-1.5 font-semibold text-[var(--vang-chinh)]">
                     <Layers className="w-3.5 h-3.5" />
-                    <span>Chất liệu & Kỹ thuật chế tác</span>
+                    <span>Chất liệu & Kỹ thuật</span>
                   </div>
                   <p className="m-0 text-[var(--chu-chinh)] font-medium">
                     {craftMeta.material} · {craftMeta.technique}
@@ -397,10 +397,10 @@ export default function CostumeDetailScreen({
                 <div className="flex items-center justify-between gap-2 flex-wrap">
                   <h3 className="font-serif text-lg font-bold text-[var(--chu-chinh)] m-0 flex items-center gap-2">
                     <Users className="w-4 h-4 text-[var(--xanh-chinh)]" />
-                    <span>Không gian Văn hóa Dân tộc {primaryDanToc.ten}</span>
+                    <span>Dân tộc {primaryDanToc.ten}</span>
                   </h3>
                   <span className="text-xs font-semibold text-[var(--chu-phu)]">
-                    Hệ ngôn ngữ: {primaryDanToc.heNgonNgu}
+                    Hệ {primaryDanToc.heNgonNgu}
                   </span>
                 </div>
 
@@ -412,7 +412,7 @@ export default function CostumeDetailScreen({
                   <div className="p-3 rounded-xl bg-[var(--nen-the-phu)] border border-[var(--vien-the)] space-y-1">
                     <div className="font-semibold text-[var(--xanh-chinh)] flex items-center gap-1.5">
                       <MapPin className="w-3.5 h-3.5" />
-                      <span>Địa bàn cư trú tiêu biểu</span>
+                      <span>Địa bàn cư trú</span>
                     </div>
                     <p className="m-0 text-[var(--chu-phu)] leading-relaxed">
                       {primaryDanToc.diaBanChinh}
@@ -422,7 +422,7 @@ export default function CostumeDetailScreen({
                   <div className="p-3 rounded-xl bg-[var(--nen-the-phu)] border border-[var(--vien-the)] space-y-1">
                     <div className="font-semibold text-[var(--vang-chinh)] flex items-center gap-1.5">
                       <Sparkles className="w-3.5 h-3.5" />
-                      <span>Nghệ thuật dệt & Thủ công</span>
+                      <span>Chất liệu & Dệt</span>
                     </div>
                     <p className="m-0 text-[var(--chu-phu)] leading-relaxed">
                       {primaryDanToc.chatLieuKyThuat}
@@ -505,14 +505,14 @@ export default function CostumeDetailScreen({
               <section className="p-5 rounded-2xl bg-[var(--nen-the)] border border-[var(--vien-the)] shadow-[var(--shadow-the)] space-y-3">
                 <div className="flex items-center justify-between gap-2">
                   <h3 className="font-serif text-lg font-bold text-[var(--chu-chinh)] m-0">
-                    Trang phục cùng dòng di sản
+                    Trang phục liên quan
                   </h3>
                   <button
                     type="button"
                     onClick={onBackToCostumes}
                     className="text-xs font-semibold text-[var(--xanh-chinh)] hover:underline cursor-pointer"
                   >
-                    Xem tất cả {trangPhuc.length} bộ →
+                    Xem tất cả ({trangPhuc.length}) →
                   </button>
                 </div>
 
@@ -540,7 +540,7 @@ export default function CostumeDetailScreen({
                           {rc.ten}
                         </div>
                         <div className="text-[10px] text-[var(--chu-phu)] truncate mt-0.5">
-                          Xem hồ sơ & hình ảnh
+                          Xem hồ sơ
                         </div>
                       </div>
                     </div>

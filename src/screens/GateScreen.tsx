@@ -103,14 +103,14 @@ export default function GateScreen({
               Cò Em
             </h1>
 
-            <div className="relative z-10 mt-1 inline-flex items-center gap-2.5 px-3.5 py-1 rounded-xl bg-[var(--nen-the)]/85 backdrop-blur-md border border-[var(--vien-the)] shadow-xs">
+            <div className="relative z-10 mt-1 inline-flex items-center gap-2 px-3.5 py-1 rounded-xl bg-[var(--nen-the)]/85 backdrop-blur-md border border-[var(--vien-the)] shadow-xs">
               <span className="w-1.5 h-1.5 rounded-full bg-[var(--xanh-chinh)]" />
               <span className="text-xs font-bold tracking-wider uppercase text-[var(--chu-chinh)]">
                 Việt Phục Remix
               </span>
               <span className="text-[var(--vien-the)]">·</span>
               <span className="text-xs font-medium text-[var(--chu-phu)]">
-                Bảo Tàng Số & Xưởng Phối Cổ Phục
+                Di Sản & Phối Cổ Phục
               </span>
             </div>
           </div>
@@ -196,12 +196,12 @@ export default function GateScreen({
             className="inline-flex items-center gap-1.5 text-[var(--xanh-chinh)] hover:text-[var(--vang-chinh)] font-semibold transition-colors bg-transparent border-0 p-0 cursor-pointer text-xs"
           >
             <ShieldCheck className="w-4 h-4" />
-            <span>Nguyên tắc khảo cứu di sản</span>
+            <span>Giữ chuẩn văn hóa</span>
           </button>
         </Tooltip>
 
         <span className="text-xs font-medium opacity-80">
-          Cò Em · Không gian Di sản Việt Phục
+          Cò Em · Việt Phục Remix
         </span>
       </footer>
     </main>

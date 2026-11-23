@@ -9,7 +9,6 @@
 import React, { useState, useEffect, useMemo, useRef, Suspense } from "react";
 import { playFolkScreenTransition } from "./lib/audio";
 import GateScreen from "./screens/GateScreen";
-import CostumeSelectScreen from "./screens/CostumeSelectScreen";
 import BauTroi from "./components/BauTroi";
 import TopBar from "./components/TopBar";
 import SidebarNav from "./components/SidebarNav";
@@ -17,10 +16,10 @@ import { TooltipProvider } from "./components/Tooltip";
 import { ScreenLoadingFallback, SubNavTabs } from "./components/common/SharedUI";
 import { QueNhaData } from "./types";
 import { NhanVatConfig, NHAN_VAT_MAC_DINH } from "./lib/avatar";
-import { CharacterModel, CharacterStorageService } from "./characters";
+import { CharacterModel } from "./characters/models/CharacterModel";
+import { CharacterStorageService } from "./characters/services/CharacterStorageService";
 import { VungId, layVungTheoId } from "./data/vung";
-import { nhom } from "./data/nhom";
-import { trangPhuc } from "./data/trangphuc";
+import { AuthService } from "./lib/auth";
 import {
   layThoiTietVung,
   ThoiTietState,
@@ -47,6 +46,7 @@ import {
 import { diemDanhHomNay } from "./lib/streak";
 
 // Lazy-loaded screens & modals for optimal bundling and runtime code-splitting
+const CostumeSelectScreen = React.lazy(() => import("./screens/CostumeSelectScreen"));
 const QueNhaScreen = React.lazy(() => import("./screens/QueNhaScreen"));
 const CostumeDetailScreen = React.lazy(() => import("./screens/CostumeDetailScreen"));
 const CharacterSelectScreen = React.lazy(() => import("./screens/CharacterSelectScreen"));
@@ -205,6 +205,9 @@ export default function App() {
         const hoSo = taoHoacChonHoSo(customEvent.detail.name);
         setActiveHoSo(hoSo);
         diemDanhHomNay();
+        import("./lib/dataSync")
+          .then((m) => m.syncAllUserData("auth-change"))
+          .catch(() => {});
       } else {
         const hoSo = dungHoSoKhach();
         setActiveHoSo(hoSo);
@@ -213,6 +216,30 @@ export default function App() {
     };
     window.addEventListener("vpr:auth-change", handleAuthChange);
     return () => window.removeEventListener("vpr:auth-change", handleAuthChange);
+  }, []);
+
+  useEffect(() => {
+    const handleCharSync = (e: Event) => {
+      const customEvent = e as CustomEvent<NhanVatConfig>;
+      if (customEvent.detail) {
+        setCharacterConfig(customEvent.detail);
+      }
+    };
+    window.addEventListener("vpr:character-sync", handleCharSync);
+
+    let timerId: number | undefined;
+    if (AuthService.getToken()) {
+      timerId = window.setTimeout(() => {
+        import("./lib/dataSync")
+          .then((m) => m.syncAllUserData("boot"))
+          .catch(() => {});
+      }, 250);
+    }
+
+    return () => {
+      window.removeEventListener("vpr:character-sync", handleCharSync);
+      if (timerId !== undefined) window.clearTimeout(timerId);
+    };
   }, []);
 
   useEffect(() => {
@@ -362,6 +389,35 @@ export default function App() {
   const [customViTri, setCustomViTri] = useState<ThongTinViTri | null>(() =>
     docViTriSession()
   );
+  const [camHungVung, setCamHungVung] = useState<VungId | null>(null);
+
+  useEffect(() => {
+    const primaryCamHung = queNhaData.camHungIds?.[0] || queNhaData.nhomQueId;
+    if (!primaryCamHung) {
+      setCamHungVung(null);
+      return;
+    }
+    let cancelled = false;
+    import("./data/nhom")
+      .then(({ nhom }) => {
+        if (cancelled) return;
+        const foundNhom = nhom.find((n) => n.id === primaryCamHung);
+        if (
+          foundNhom?.vung === "bac" ||
+          foundNhom?.vung === "trung" ||
+          foundNhom?.vung === "taynguyen" ||
+          foundNhom?.vung === "nam"
+        ) {
+          setCamHungVung(foundNhom.vung);
+        } else {
+          setCamHungVung(null);
+        }
+      })
+      .catch(() => {});
+    return () => {
+      cancelled = true;
+    };
+  }, [queNhaData.camHungIds, queNhaData.nhomQueId]);
 
   const currentVungId: VungId = useMemo(() => {
     const urlParams = docThamSoURL();
@@ -374,20 +430,11 @@ export default function App() {
     if (manualVungId) {
       return manualVungId;
     }
-    const primaryCamHung = queNhaData.camHungIds?.[0] || queNhaData.nhomQueId;
-    if (primaryCamHung) {
-      const foundNhom = nhom.find((n) => n.id === primaryCamHung);
-      if (
-        foundNhom?.vung === "bac" ||
-        foundNhom?.vung === "trung" ||
-        foundNhom?.vung === "taynguyen" ||
-        foundNhom?.vung === "nam"
-      ) {
-        return foundNhom.vung;
-      }
+    if (camHungVung) {
+      return camHungVung;
     }
     return "trung";
-  }, [manualVungId, customViTri, queNhaData.camHungIds, queNhaData.nhomQueId]);
+  }, [manualVungId, customViTri, camHungVung]);
 
   const [weatherState, setWeatherState] = useState<ThoiTietState>(() => {
     const targetVung = layVungTheoId(currentVungId);
@@ -756,10 +803,18 @@ export default function App() {
             {currentScreen === "tham_tu" && (
               <ThamTuScreen
                 onProceedToS4={(tpId) => {
-                  if (tpId && trangPhuc.some((t) => t.id === tpId)) {
-                    setSelectedTrangPhucId(tpId);
+                  if (tpId) {
+                    import("./data/trangphuc")
+                      .then(({ trangPhuc }) => {
+                        if (trangPhuc.some((t) => t.id === tpId)) {
+                          setSelectedTrangPhucId(tpId);
+                        }
+                        setCurrentScreen("s4");
+                      })
+                      .catch(() => setCurrentScreen("s4"));
+                  } else {
+                    setCurrentScreen("s4");
                   }
-                  setCurrentScreen("s4");
                 }}
                 onSkipToS4={() => setCurrentScreen("s4")}
                 onBackToS2={() => setCurrentScreen("s2")}
@@ -777,13 +832,20 @@ export default function App() {
                 }}
                 onSelectNhomAndNavigateToS2={(nhomOrCostumeId, vungId) => {
                   setManualVungId(vungId);
-                  if (trangPhuc.some((tp) => tp.id === nhomOrCostumeId)) {
-                    setSelectedTrangPhucId(nhomOrCostumeId);
-                    setCurrentScreen("s3");
-                  } else {
-                    setSelectedNhomFilterForS2(nhomOrCostumeId);
-                    setCurrentScreen("s2");
-                  }
+                  import("./data/trangphuc")
+                    .then(({ trangPhuc }) => {
+                      if (trangPhuc.some((tp) => tp.id === nhomOrCostumeId)) {
+                        setSelectedTrangPhucId(nhomOrCostumeId);
+                        setCurrentScreen("s3");
+                      } else {
+                        setSelectedNhomFilterForS2(nhomOrCostumeId);
+                        setCurrentScreen("s2");
+                      }
+                    })
+                    .catch(() => {
+                      setSelectedNhomFilterForS2(nhomOrCostumeId);
+                      setCurrentScreen("s2");
+                    });
                 }}
               />
             )}
@@ -888,11 +950,13 @@ export default function App() {
             />
           )}
 
-          <AuthModal
-            isOpen={isAuthModalOpen}
-            initialMode={authModalMode}
-            onClose={() => setIsAuthModalOpen(false)}
-          />
+          {isAuthModalOpen && (
+            <AuthModal
+              isOpen={isAuthModalOpen}
+              initialMode={authModalMode}
+              onClose={() => setIsAuthModalOpen(false)}
+            />
+          )}
         </Suspense>
 
         {/* CỘT CÔNG CỤ & ĐIỀU HƯỚNG BÊN TRÁI MÀN HÌNH (SidebarNav) */}

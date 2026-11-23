@@ -49,18 +49,18 @@ export default function Ethnic54ExplorerSection({
         <div className="flex items-center gap-2">
           <Users className="w-4 h-4 text-[var(--xanh-chinh)]" />
           <h2 className="font-serif text-base sm:text-lg font-bold text-[var(--chu-chinh)] m-0">
-            Tra Cứu Sắc Phục 54 Dân Tộc Việt Nam
+            54 Dân Tộc Việt Nam
           </h2>
         </div>
 
         {/* Ô tìm kiếm nhanh trong 54 dân tộc */}
-        <div className="relative w-full md:w-72 shrink-0">
+        <div className="relative w-full md:w-64 shrink-0">
           <Search className="w-3.5 h-3.5 text-[var(--chu-phu)] absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none" />
           <input
             type="text"
             value={danTocQuery}
             onChange={(e) => onChangeDanTocQuery(e.target.value)}
-            placeholder="Tìm dân tộc (VD: H'Mông, Cơ Tu, Chăm...)"
+            placeholder="Tìm dân tộc..."
             className="w-full pl-8 pr-7 py-1.5 text-xs rounded-xl bg-[var(--nen-the-phu)] border border-[var(--vien-the)] text-[var(--chu-chinh)] placeholder:text-[var(--chu-phu)]/60 focus:outline-none focus:border-[var(--xanh-chinh)]"
           />
           {danTocQuery && (

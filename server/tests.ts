@@ -270,9 +270,11 @@ async function runTestSuite() {
     `Loaded: ${JSON.stringify(loadedChar)}`
   );
 
-  // Test 14: Lưu và lấy danh sách bộ phối đồ
+  // Test 14: Lưu và lấy danh sách bộ phối đồ (cô lập theo user_id)
+  const testDbUserId = "test-db-user-01";
   const testOutfit: OutfitRecord = {
     id: `test-outfit-${Date.now()}`,
+    user_id: testDbUserId,
     title: "Áo Tấc Hoàng Tộc Xanh Thiên Thanh",
     trang_phuc_id: "aotac",
     mau_hex: "#0284C7",
@@ -282,7 +284,7 @@ async function runTestSuite() {
     created_at: new Date().toISOString(),
   };
   db.saveOutfit(testOutfit);
-  const allOutfits = db.getAllOutfits();
+  const allOutfits = db.getAllOutfits(testDbUserId);
   const foundOutfit = allOutfits.find((o) => o.id === testOutfit.id);
   assert(
     foundOutfit !== undefined && foundOutfit.title === testOutfit.title,
@@ -290,14 +292,15 @@ async function runTestSuite() {
     `Tìm thấy: ${foundOutfit?.title}`
   );
 
-  // Test 15: Xóa bộ phối đồ
-  const deleted = db.deleteOutfit(testOutfit.id);
-  const afterDeleteOutfits = db.getAllOutfits();
+  // Test 15: Xóa bộ phối đồ (kiểm tra đúng chủ sở hữu)
+  const wrongUserDelete = db.deleteOutfit(testOutfit.id, "other-user");
+  const deleted = db.deleteOutfit(testOutfit.id, testDbUserId);
+  const afterDeleteOutfits = db.getAllOutfits(testDbUserId);
   const stillExists = afterDeleteOutfits.some((o) => o.id === testOutfit.id);
   assert(
-    deleted === true && !stillExists,
+    wrongUserDelete === false && deleted === true && !stillExists,
     "Xóa bộ trang phục khỏi CSDL thành công",
-    `deleted=${deleted}, stillExists=${stillExists}`
+    `wrongUser=${wrongUserDelete}, deleted=${deleted}, stillExists=${stillExists}`
   );
 
   // Test 16: Lưu và đọc ký ức Việt Phục
@@ -318,9 +321,10 @@ async function runTestSuite() {
     `Tìm thấy: ${foundMem?.content}`
   );
 
-  // Test 17: Đơn hàng chợ phiên
+  // Test 17: Đơn hàng chợ phiên (cô lập theo user_id)
   const testOrder: OrderRecord = {
     id: `test-ord-${Date.now()}`,
+    user_id: testDbUserId,
     item_id: "aodai_truyenthong",
     item_name: "Áo Dài Lụa Hà Đông",
     size: "L",
@@ -329,7 +333,7 @@ async function runTestSuite() {
     created_at: new Date().toISOString(),
   };
   db.saveOrder(testOrder);
-  const allOrders = db.getAllOrders();
+  const allOrders = db.getAllOrders(testDbUserId);
   const foundOrder = allOrders.find((o) => o.id === testOrder.id);
   assert(
     foundOrder !== undefined && foundOrder.item_name === "Áo Dài Lụa Hà Đông",
@@ -411,6 +415,62 @@ async function runTestSuite() {
       "Máy chủ gửi đầy đủ Security Headers (nosniff, SAMEORIGIN)",
       `Headers: nosniff=${hasNosniff}, frame=${hasFrame}`
     );
+
+    // Test 25: /api/sync từ chối ghi khi chưa đăng nhập (401)
+    const unauthSyncPost = await makeRequest("POST", "/api/sync", {
+      character: { gioi: "nam" },
+    });
+    assert(
+      unauthSyncPost.status === 401 && unauthSyncPost.data.ok === false,
+      "Endpoint POST /api/sync từ chối ghi dữ liệu khi thiếu Bearer token (401)",
+      `Status: ${unauthSyncPost.status}`
+    );
+
+    // Test 26: Đăng nhập lại bằng OTP và kiểm tra đồng bộ đa chiều POST/GET /api/sync
+    const syncEmail = "dongbo.test@gmail.com";
+    const sendSyncOtp = await makeRequest("POST", "/api/auth/send-otp", { email: syncEmail });
+    const latestSyncOtp = db.getLatestOtp(syncEmail)?.code || sendSyncOtp.data?.devOtpPreview;
+    const verifySync = await makeRequest("POST", "/api/auth/verify-otp", {
+      email: syncEmail,
+      code: latestSyncOtp,
+      name: "Người Dùng Đồng Bộ",
+    });
+    const syncToken = verifySync.data?.token || "";
+    const syncOutfitId = `sync-outfit-${Date.now()}`;
+    const postSyncRes = await makeRequest(
+      "POST",
+      "/api/sync",
+      {
+        character: { gioi: "nam", vocDang: "chu_nhat", tongDa: 3, toc: "ngan" },
+        outfits: [
+          {
+            id: syncOutfitId,
+            title: "<b>Áo Giao Lĩnh Đồng Bộ</b>",
+            trang_phuc_id: "giaolinh",
+            mau_hex: "m_do",
+            phu_kien_ids: ["nonla"],
+          },
+        ],
+      },
+      syncToken
+    );
+    const getSyncRes = await makeRequest("GET", "/api/sync", undefined, syncToken);
+    const syncedOutfit = Array.isArray(getSyncRes.data?.outfits)
+      ? getSyncRes.data.outfits.find((o: any) => o.id === syncOutfitId)
+      : null;
+    assert(
+      postSyncRes.status === 200 &&
+        getSyncRes.status === 200 &&
+        getSyncRes.data?.authenticated === true &&
+        getSyncRes.data?.character?.gioi === "nam" &&
+        Boolean(syncedOutfit) &&
+        !String(syncedOutfit.title).includes("<b>"),
+      "Endpoint POST/GET /api/sync đồng bộ nhân vật & trang phục theo user an toàn",
+      `Status: ${postSyncRes.status}/${getSyncRes.status}`
+    );
+    if (syncToken) {
+      await makeRequest("POST", "/api/auth/logout", undefined, syncToken);
+    }
   } catch (err: unknown) {
     console.warn("Lưu ý: Không thể kết nối tới server 127.0.0.1:3000 để chạy HTTP test.", err);
   }

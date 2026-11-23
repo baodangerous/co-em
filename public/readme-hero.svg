@@ -43,7 +43,7 @@
     </circle>
 
     <!-- Họa tiết vòng tròn Trống Đồng xoay chậm -->
-    <g transform="translate(965, 170)" opacity="0.22" stroke="#fcd34d" fill="none">
+    <g transform="translate(965, 170)" opacity="0.34" stroke="#fcd34d" fill="none">
       <g>
         <circle r="165" stroke-width="1.2" stroke-dasharray="6 8" />
         <circle r="135" stroke-width="1" stroke-dasharray="2 6" />
@@ -66,19 +66,6 @@
                 M-40,290 C220,235 420,335 720,275 C960,230 1090,305 1240,265 L1240,350 L-40,350 Z"
         dur="9s" repeatCount="indefinite" />
     </path>
-
-    <!-- Biểu tượng cánh Cò Em cách điệu bay nhẹ -->
-    <g transform="translate(915, 118)" filter="url(#glow)">
-      <g>
-        <animateTransform attributeName="transform" type="translate" values="0,0; 0,-8; 0,0" dur="4.5s" repeatCount="indefinite" />
-        <!-- Thân & cánh cò trắng ánh vàng -->
-        <path d="M22,68 C38,44 68,26 106,36 C86,44 74,56 64,74 C50,82 32,82 22,68 Z" fill="#fef3c7" opacity="0.95" />
-        <path d="M52,46 C66,18 96,4 128,12 C104,22 86,38 74,58 Z" fill="#fde68a" opacity="0.88" />
-        <path d="M95,38 C108,22 122,16 135,19 C128,23 122,28 117,36" fill="none" stroke="#fef3c7" stroke-width="5" stroke-linecap="round" />
-        <polygon points="134,17 154,20 135,24" fill="#f59e0b" />
-        <path d="M40,73 L14,88 M48,76 L26,95" stroke="#fde68a" stroke-width="2.4" stroke-linecap="round" />
-      </g>
-    </g>
 
     <!-- Các hạt đom đóm / ánh vàng lấp lánh -->
     <g fill="#fde68a" filter="url(#glow)">

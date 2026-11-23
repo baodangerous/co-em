@@ -129,6 +129,7 @@ export const SQLITE_SCHEMA_DDL = `
     id TEXT PRIMARY KEY,
     email TEXT UNIQUE,
     name TEXT,
+    role TEXT DEFAULT 'member',
     avatar TEXT,
     created_at TEXT,
     last_login TEXT
@@ -145,6 +146,7 @@ export const SQLITE_SCHEMA_DDL = `
     token TEXT PRIMARY KEY,
     user_id TEXT,
     email TEXT,
+    role TEXT DEFAULT 'member',
     expires_at INTEGER,
     created_at TEXT
   );
@@ -195,4 +197,9 @@ export const SQLITE_SCHEMA_DDL = `
     response_data TEXT,
     created_at TEXT
   );
+  CREATE INDEX IF NOT EXISTS idx_sessions_user ON sessions(user_id);
+  CREATE INDEX IF NOT EXISTS idx_otp_email ON otp_codes(email);
+  CREATE INDEX IF NOT EXISTS idx_outfits_user ON outfits(user_id);
+  CREATE INDEX IF NOT EXISTS idx_orders_user ON orders(user_id);
+  CREATE INDEX IF NOT EXISTS idx_characters_user ON characters(user_id);
 `;

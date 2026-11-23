@@ -6,6 +6,7 @@
 import { NhanVatConfig, NHAN_VAT_MAC_DINH } from "./avatar";
 import { callGemini } from "./gemini";
 import { layKhoaTheoHoSo } from "./hoSo";
+import { AuthService } from "./auth";
 
 export interface OutfitSaved {
   id: string;
@@ -79,6 +80,50 @@ export function docDanhSachGuiKyUc(): OutfitSaved[] {
   return [SAMPLE_OUTFIT];
 }
 
+function pushOutfitSync(outfit: OutfitSaved): void {
+  if (typeof window === "undefined") return;
+  const token = AuthService.getToken();
+  if (!token) return;
+
+  if (token.startsWith("fb-")) {
+    import("./dataSync")
+      .then((m) => m.pushOutfitToCloud(outfit))
+      .catch(() => {});
+    return;
+  }
+
+  if (typeof fetch === "function") {
+    fetch("/api/outfits", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        ...AuthService.getAuthHeaders(),
+      },
+      body: JSON.stringify({
+        id: outfit.id,
+        title: outfit.caption || "Bộ phối đồ Việt phục",
+        trang_phuc_id: outfit.trangPhucId,
+        mau_hex: outfit.mauId,
+        phu_kien_ids: outfit.phuKienIds,
+        nhan_vat_config: outfit.nhanVatConfig,
+        notes: outfit.cauLyDoRemix || "",
+      }),
+    }).catch(() => {});
+  }
+}
+
+export function capNhatDanhSachGuiKyUcTuSync(mergedList: OutfitSaved[]): void {
+  if (typeof window === "undefined" || !window.localStorage) return;
+  const storageKey = layKhoaOutfits();
+  try {
+    const trimmed = mergedList.slice(0, MAX_OUTFITS);
+    window.localStorage.setItem(storageKey, JSON.stringify(trimmed));
+    window.dispatchEvent(new CustomEvent("vpr:outfits-change", { detail: trimmed }));
+  } catch (err) {
+    console.error("Lỗi ghi dữ liệu Gùi Ký Ức đồng bộ:", err);
+  }
+}
+
 /**
  * Cất một bộ trang phục mới vào Gùi Ký Ức (tối đa 6 bộ)
  */
@@ -103,6 +148,7 @@ export function luuVaoGuiKyUc(
       try {
         window.localStorage.setItem(storageKey, JSON.stringify(currentList));
         window.dispatchEvent(new CustomEvent("vpr:outfits-change", { detail: currentList }));
+        pushOutfitSync(updated);
       } catch (err) {
         console.error("Lỗi lưu Gùi Ký Ức:", err);
       }
@@ -136,23 +182,7 @@ export function luuVaoGuiKyUc(
         detail: { trangPhucId: newOutfit.trangPhucId, id: newOutfit.id, action: "save" },
       })
     );
-
-    // Đồng bộ an toàn tới CSDL máy chủ
-    if (typeof fetch === "function") {
-      fetch("/api/outfits", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          id: newOutfit.id,
-          title: newOutfit.caption || "Bộ phối đồ Việt phục",
-          trang_phuc_id: newOutfit.trangPhucId,
-          mau_hex: newOutfit.mauId,
-          phu_kien_ids: newOutfit.phuKienIds,
-          nhan_vat_config: newOutfit.nhanVatConfig,
-          notes: newOutfit.cauLyDoRemix || "",
-        }),
-      }).catch(() => {});
-    }
+    pushOutfitSync(newOutfit);
   } catch (err) {
     console.error("Lỗi lưu Gùi Ký Ức:", err);
   }
@@ -172,9 +202,18 @@ export function xoaKhoiGuiKyUc(id: string): OutfitSaved[] {
     window.localStorage.setItem(storageKey, JSON.stringify(newList));
     window.dispatchEvent(new CustomEvent("vpr:outfits-change", { detail: newList }));
 
-    // Đồng bộ xóa trên CSDL máy chủ
-    if (typeof fetch === "function") {
-      fetch(`/api/outfits/${encodeURIComponent(id)}`, { method: "DELETE" }).catch(() => {});
+    const token = AuthService.getToken();
+    if (token) {
+      if (token.startsWith("fb-")) {
+        import("./dataSync")
+          .then((m) => m.deleteOutfitFromCloud(id))
+          .catch(() => {});
+      } else if (typeof fetch === "function") {
+        fetch(`/api/outfits/${encodeURIComponent(id)}`, {
+          method: "DELETE",
+          headers: AuthService.getAuthHeaders(),
+        }).catch(() => {});
+      }
     }
   } catch (err) {
     console.error("Lỗi xóa khỏi Gùi Ký Ức:", err);
@@ -266,7 +305,7 @@ export async function goiYCaptionGemini(params: {
 
 /**
  * Xuất thẻ kỷ niệm PNG từ SVG qua Canvas:
- * (nhân vật + tên bộ đồ + chú thích + dòng "Đóm Dáng — Việt Phục Remix") và cho tải về.
+ * (nhân vật + tên bộ đồ + chú thích + dòng "Cò Em — Việt Phục Remix") và cho tải về.
  */
 export async function xuatThePNG(params: {
   svgElement: SVGSVGElement;
@@ -376,11 +415,11 @@ export async function xuatThePNG(params: {
           }
         }
 
-        // h. Dòng thương hiệu bắt buộc: "Đóm Dáng — Việt Phục Remix"
+        // h. Dòng thương hiệu: "Cò Em — Việt Phục Remix"
         ctx.fillStyle = "#D9A441";
         ctx.font = "600 13px 'Be Vietnam Pro', sans-serif";
         ctx.textAlign = "center";
-        ctx.fillText("Đóm Dáng — Việt Phục Remix", width / 2, 755);
+        ctx.fillText("Cò Em — Việt Phục Remix", width / 2, 755);
 
         // Dòng phụ chú thiết bị
         ctx.fillStyle = "#8A8175";

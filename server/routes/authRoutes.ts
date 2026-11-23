@@ -32,12 +32,10 @@ function verifyServerAdminPassword(passwordInput: string): boolean {
   const envPass = process.env.ADMIN_PASSWORD?.trim();
   const validHashes = [
     ...(envPass ? [sha256Hex(envPass)] : []),
-    // SHA-256 hashes for default project admin credentials (verified strictly on server)
-    "0f59b2d307b4f789a56e98967bc8ab589186f09f89a675a62403f672050d0c35", // admin2026
-    "54b87836e3b64f161ab8154e4144b90fb74b680b1815a3f574b65e65301f5365", // vietphuc2026
+    "0f59b2d307b4f789a56e98967bc8ab589186f09f89a675a62403f672050d0c35",
+    "54b87836e3b64f161ab8154e4144b90fb74b680b1815a3f574b65e65301f5365",
   ];
 
-  // Fallback check if environment hash or standard admin pass matches via timingSafeEqual
   for (const hex of validHashes) {
     const targetBuf = Buffer.from(hex, "hex");
     if (
@@ -47,12 +45,7 @@ function verifyServerAdminPassword(passwordInput: string): boolean {
       return true;
     }
   }
-
-  // Direct timing-safe check against configured fallback secret
-  const fallbackSecret = envPass || "admin2026";
-  const a = Buffer.from( sha256Hex(passwordInput.trim()), "utf8");
-  const b = Buffer.from( sha256Hex(fallbackSecret), "utf8");
-  return a.length === b.length && crypto.timingSafeEqual(a, b);
+  return false;
 }
 
 export function getAuthenticatedUser(req: Request): {

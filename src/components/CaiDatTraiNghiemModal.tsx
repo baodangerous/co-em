@@ -109,7 +109,7 @@ export default function CaiDatTraiNghiemModal({
             Cài Đặt Trải Nghiệm
           </h2>
           <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5 m-0">
-            Tùy chỉnh âm thanh, cỡ chữ và thời tiết gợi ý.
+            Âm thanh, cỡ chữ và vị trí gợi ý.
           </p>
         </header>
 
@@ -128,7 +128,7 @@ export default function CaiDatTraiNghiemModal({
                     Âm thanh dân gian & tương tác
                   </span>
                   <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5 leading-snug m-0">
-                    Nhạc cụ truyền thống, tiếng vải lụa, bước guốc và chim hót quê nhà.
+                    Nhạc cụ truyền thống & hiệu ứng chạm.
                   </p>
                 </div>
               </div>
@@ -194,7 +194,7 @@ export default function CaiDatTraiNghiemModal({
                   Giảm chuyển động
                 </span>
                 <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5 leading-snug m-0">
-                  Hạn chế hiệu ứng lướt và hoạt cảnh bay lượn.
+                  Hạn chế hiệu ứng chuyển động.
                 </p>
               </div>
             </div>
@@ -225,7 +225,7 @@ export default function CaiDatTraiNghiemModal({
                 Cỡ chữ hiển thị
               </span>
               <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5 leading-snug m-0">
-                Phóng to văn bản cho dễ đọc trên toàn ứng dụng.
+                Điều chỉnh kích thước chữ dễ đọc.
               </p>
             </div>
 
@@ -266,7 +266,7 @@ export default function CaiDatTraiNghiemModal({
                   Bầu trời động
                 </span>
                 <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5 leading-snug m-0">
-                  Hiệu ứng mây trôi và ánh sáng ngày đêm theo thời gian thực.
+                  Mây trôi và ánh sáng theo giờ.
                 </p>
               </div>
             </div>

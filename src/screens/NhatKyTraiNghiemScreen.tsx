@@ -46,8 +46,7 @@ import {
   getCurrentUserId,
   JOURNAL_CHANGE_EVENT,
 } from "../lib/journal";
-import { useAuth } from "../lib/auth";
-import { auth as firebaseAuth } from "../lib/firebase";
+import { AuthService, useAuth } from "../lib/auth";
 import AppFooter from "../components/AppFooter";
 
 interface Props {
@@ -96,7 +95,7 @@ export default function NhatKyTraiNghiemScreen({
       const uid = getCurrentUserId();
       const res = await taiVaDongBoJournal(uid || undefined);
       setEntries(res.entries);
-      setIsFirestoreSynced(res.fromFirestore || !!firebaseAuth.currentUser);
+      setIsFirestoreSynced(res.fromFirestore || Boolean(AuthService.getToken()?.startsWith("fb-")));
     } catch (err) {
       console.error("Lỗi nạp nhật ký:", err);
     } finally {
@@ -264,7 +263,7 @@ export default function NhatKyTraiNghiemScreen({
                 </span>
               </h1>
               <p className="text-xs text-[var(--tro-tram)] hidden sm:block">
-                Lịch sử cổ phục và lưu giữ ghi chú cảm xúc cá nhân của bạn
+                Bộ sưu tập đã phối & cảm nhận cá nhân
               </p>
             </div>
           </div>
@@ -294,10 +293,10 @@ export default function NhatKyTraiNghiemScreen({
                 Dấu Ấn Cá Nhân
               </div>
               <h2 className="text-lg font-bold text-[var(--nen-toi)]">
-                Nhật Ký Cảm Xúc Qua Từng Tà Áo
+                Nhật Ký Tà Áo Việt
               </h2>
-              <p className="text-sm text-[var(--tro-tram)]">
-                Ghi lại cảm nghĩ và kỷ niệm riêng với từng bộ trang phục.
+              <p className="text-xs sm:text-sm text-[var(--tro-tram)]">
+                Lưu lại cảm xúc và kỷ niệm riêng với từng bộ phối.
               </p>
             </div>
 
@@ -328,7 +327,7 @@ export default function NhatKyTraiNghiemScreen({
                 type="text"
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
-                placeholder="Tìm theo tên trang phục, cảm xúc, hoặc nội dung ghi chú..."
+                placeholder="Tìm trang phục hoặc ghi chú..."
                 className="w-full pl-10 pr-4 py-2.5 rounded-xl border border-[var(--vien-the)] bg-[var(--nen-the)] text-[var(--nen-toi)] text-sm focus:outline-none focus:ring-2 focus:ring-amber-500/40 transition-all placeholder:text-[var(--tro-tram)]/60"
               />
               {searchQuery && (

@@ -9,6 +9,7 @@
 import { CharacterModel } from "../models/CharacterModel";
 import { NhanVatConfig } from "../types";
 import { layKhoaTheoHoSo } from "../../lib/hoSo";
+import { AuthService } from "../../lib/auth";
 
 export class CharacterStorageService {
   private static readonly STORAGE_KEY_PREFIX = "nhan_vat";
@@ -38,7 +39,25 @@ export class CharacterStorageService {
   }
 
   /**
-   * Lưu cấu hình nhân vật an toàn (đồng bộ cả LocalStorage và Backend CSDL)
+   * Áp dụng cấu hình nhân vật nhận từ đồng bộ máy chủ/Cloud mà không gọi ngược lại API
+   */
+  static applySyncedCharacter(character: NhanVatConfig): NhanVatConfig {
+    const model = CharacterModel.fromConfig(character);
+    const normalized = model.toConfig();
+    try {
+      if (typeof window !== "undefined" && window.localStorage) {
+        const key = layKhoaTheoHoSo(this.STORAGE_KEY_PREFIX);
+        window.localStorage.setItem(key, JSON.stringify(normalized));
+        window.dispatchEvent(new CustomEvent("vpr:character-sync", { detail: normalized }));
+      }
+    } catch {
+      // ignore
+    }
+    return normalized;
+  }
+
+  /**
+   * Lưu cấu hình nhân vật an toàn (đồng bộ cả LocalStorage và Backend CSDL / Firestore)
    */
   static saveCharacter(character: CharacterModel | NhanVatConfig): void {
     const config = character instanceof CharacterModel ? character.toConfig() : character;
@@ -52,15 +71,26 @@ export class CharacterStorageService {
       console.warn("Không thể lưu hồ sơ nhân vật vào localStorage:", err);
     }
 
+    const token = AuthService.getToken();
+    if (token?.startsWith("fb-")) {
+      import("../../lib/dataSync")
+        .then((m) => m.pushCharacterToCloud(config))
+        .catch(() => {});
+      return;
+    }
+
     // Đồng bộ nền tới máy chủ CSDL (không chặn UI)
     try {
       if (typeof window !== "undefined" && typeof fetch === "function") {
         fetch("/api/character", {
           method: "POST",
-          headers: { "Content-Type": "application/json" },
+          headers: {
+            "Content-Type": "application/json",
+            ...AuthService.getAuthHeaders(),
+          },
           body: JSON.stringify({
             id: "default",
-            name: "Người mẫu Việt Phục",
+            name: AuthService.getUser()?.name || "Người mẫu Việt Phục",
             gioi: config.gioi,
             tuoi: config.tuoi,
             vocDang: config.vocDang,

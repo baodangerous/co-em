@@ -297,15 +297,11 @@ export default function CostumeSelectScreen({
         <header className="relative overflow-hidden flex flex-col sm:flex-row sm:items-center justify-between gap-3 p-5 rounded-2xl bg-[var(--nen-the)] border border-[var(--vien-the)] shadow-[var(--shadow-the)]">
           <div className="absolute top-0 left-0 right-0 h-1 bg-gradient-to-r from-emerald-600 via-amber-500 to-teal-600" />
           <div>
-            <div className="inline-flex items-center gap-2 text-xs font-semibold text-[var(--xanh-chinh)] mb-1">
-              <span className="w-1.5 h-1.5 rounded-full bg-[var(--xanh-chinh)]" />
-              <span>Không Gian Triển Lãm Số · Sắc Phục Di Sản Việt Nam</span>
-            </div>
             <h1 className="font-serif text-xl sm:text-2xl font-bold text-[var(--chu-chinh)] m-0">
-              Bộ Sưu Tập Di Sản Việt Phục
+              Bộ Sưu Tập Việt Phục
             </h1>
             <span className="text-xs text-[var(--chu-phu)] mt-0.5 block">
-              Tra cứu trực quan cổ phục triều đại & sắc phục truyền thống các dân tộc Việt Nam
+              Cổ phục triều đại & sắc phục 54 dân tộc Việt Nam
             </span>
           </div>
 
@@ -430,7 +426,7 @@ export default function CostumeSelectScreen({
                 type="text"
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
-                placeholder="Tìm trang phục hoặc bất kỳ dân tộc nào..."
+                placeholder="Tìm trang phục, dân tộc..."
                 className="w-full pl-8 pr-7 py-1.5 text-xs rounded-xl bg-[var(--nen-the-phu)] border border-[var(--vien-the)] text-[var(--chu-chinh)] placeholder:text-[var(--chu-phu)]/60 focus:outline-none focus:border-[var(--xanh-chinh)]"
               />
               {searchQuery && (

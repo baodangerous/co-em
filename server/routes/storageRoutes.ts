@@ -27,8 +27,140 @@ storageRouter.get("/health", (_req: Request, res: Response) => {
     geminiConfigured: hasKey,
     models: ["gemini-3.8-flash", "gemini-3.1-flash-lite"],
     database: "ready",
+    dbEngine: db.getEngineInfo(),
     securityAudit: "passed",
   });
+});
+
+// 1B. Đồng bộ toàn bộ dữ liệu cá nhân trong 1 request (Character + Outfits + Orders)
+storageRouter.get("/sync", (req: Request, res: Response) => {
+  try {
+    const { user, role } = getAuthenticatedUser(req);
+    if (!user) {
+      const guestChar = db.getCharacter("default");
+      res.json({
+        ok: true,
+        authenticated: false,
+        character: guestChar,
+        outfits: [],
+        orders: [],
+        serverTime: new Date().toISOString(),
+      });
+      return;
+    }
+
+    const character = db.getCharacter(`user-${user.id}`, user.id);
+    const outfits = db.getAllOutfits(user.id);
+    const orders = db.getAllOrders(user.id);
+
+    res.json({
+      ok: true,
+      authenticated: true,
+      user: {
+        id: user.id,
+        email: user.email,
+        name: user.name,
+        role: role || user.role || "member",
+        avatar: user.avatar,
+      },
+      character,
+      outfits,
+      orders,
+      serverTime: new Date().toISOString(),
+    });
+  } catch (err) {
+    res.status(500).json({ ok: false, error: sanitizeErrorMessage(err) });
+  }
+});
+
+storageRouter.post("/sync", (req: Request, res: Response) => {
+  try {
+    const { user } = getAuthenticatedUser(req);
+    if (!user) {
+      res.status(401).json({
+        ok: false,
+        error: "Vui lòng đăng nhập để đồng bộ dữ liệu lên máy chủ.",
+      });
+      return;
+    }
+
+    const body = req.body || {};
+    const nowIso = new Date().toISOString();
+
+    if (body.character && typeof body.character === "object") {
+      const c = body.character as Record<string, unknown>;
+      const charRecord: CharacterRecord = {
+        id: `user-${user.id}`,
+        user_id: user.id,
+        name: sanitizeString(c.name) || user.name || "Người mẫu Việt Phục",
+        gioi: c.gioi === "nam" ? "nam" : "nu",
+        tuoi:
+          c.tuoi === "tre_em"
+            ? "tre_em"
+            : c.tuoi === "nguoi_cao_tuoi"
+            ? "nguoi_cao_tuoi"
+            : "nguoi_lon",
+        vocDang: sanitizeString(c.vocDang).slice(0, 48) || "dong_ho_cat",
+        tongDa:
+          typeof c.tongDa === "number"
+            ? Math.max(1, Math.min(6, Math.round(c.tongDa)))
+            : 2,
+        toc: sanitizeString(c.toc).slice(0, 48) || "bui_thap",
+        huongNhin: c.huongNhin === "sau" ? "sau" : "truoc",
+        updated_at: nowIso,
+      };
+      db.saveCharacter(charRecord);
+    }
+
+    if (Array.isArray(body.outfits)) {
+      const limitedOutfits = body.outfits.slice(0, 12);
+      for (const raw of limitedOutfits) {
+        if (!raw || typeof raw !== "object") continue;
+        const o = raw as Record<string, unknown>;
+        const tpId = sanitizeString(o.trang_phuc_id || o.trangPhucId).slice(0, 64);
+        const id = sanitizeString(o.id).slice(0, 64);
+        if (!tpId || !id) continue;
+
+        const record: OutfitRecord = {
+          id,
+          user_id: user.id,
+          title:
+            sanitizeString(o.title || o.caption).slice(0, 140) ||
+            "Bộ phối đồ Việt phục",
+          trang_phuc_id: tpId,
+          mau_hex: sanitizeString(o.mau_hex || o.mauId).slice(0, 24) || "#B45309",
+          phu_kien_ids: Array.isArray(o.phu_kien_ids || o.phuKienIds)
+            ? ((o.phu_kien_ids || o.phuKienIds) as unknown[])
+                .slice(0, 10)
+                .map((pk) => sanitizeString(pk).slice(0, 64))
+            : [],
+          nhan_vat_config:
+            typeof (o.nhan_vat_config || o.nhanVatConfig) === "object" &&
+            (o.nhan_vat_config || o.nhanVatConfig) !== null
+              ? ((o.nhan_vat_config || o.nhanVatConfig) as Record<string, unknown>)
+              : {},
+          notes: sanitizeString(o.notes || o.cauLyDoRemix).slice(0, 500),
+          created_at:
+            typeof o.created_at === "string" && o.created_at
+              ? sanitizeString(o.created_at).slice(0, 64)
+              : typeof o.taoLuc === "number"
+              ? new Date(o.taoLuc).toISOString()
+              : nowIso,
+        };
+        db.saveOutfit(record);
+      }
+    }
+
+    res.json({
+      ok: true,
+      authenticated: true,
+      character: db.getCharacter(`user-${user.id}`, user.id),
+      outfits: db.getAllOutfits(user.id),
+      serverTime: nowIso,
+    });
+  } catch (err) {
+    res.status(500).json({ ok: false, error: sanitizeErrorMessage(err) });
+  }
 });
 
 // 2. Lưu trữ cấu hình Nhân vật (Cô lập theo User ID)
