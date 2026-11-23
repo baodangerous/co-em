@@ -3,49 +3,52 @@
  * SPDX-License-Identifier: Apache-2.0
  *
  * MODULE ĐỊNH TUYẾN XÁC THỰC MÁY CHỦ (SERVER AUTH ROUTES)
- * - Xác thực Email OTP & Quản lý phiên (Session Token 64-hex)
- * - Xác thực Quản trị viên (Admin) trên máy chủ bằng băm SHA-256 & so sánh hằng thời gian (Timing-Safe)
- * - Tuyệt đối không lưu hay kiểm tra mật khẩu Admin ở phía Client
+ * - Xác thực Email OTP (lưu OTP đã băm HMAC), Firebase ID Token & Session Token 64-hex
+ * - Xác thực Quản trị viên (Admin) trên máy chủ qua biến môi trường & so sánh hằng thời gian
+ * - Cung cấp middleware requireAuth & requireAdmin cho toàn bộ API
  */
 
-import { Router, type Request, type Response } from "express";
+import { Router, type NextFunction, type Request, type Response } from "express";
 import crypto from "crypto";
 import db, { type OtpRecord, type SessionRecord, type UserRecord } from "../db.ts";
-import { sanitizeString, sanitizeErrorMessage } from "../security.ts";
+import {
+  sanitizeString,
+  sanitizeErrorMessage,
+  rateLimiterMiddleware,
+  hashOtpCode,
+  timingSafeEqualHex,
+} from "../security.ts";
 import { isValidEmail, generateOtpCode, sendOtpEmail } from "../emailService.ts";
+import { verifyFirebaseIdToken } from "../firebaseVerify.ts";
 
 export const authRouter = Router();
 
+const OWNER_ADMIN_EMAIL = "thumodzit@gmail.com";
 const ADMIN_ALLOWED_ACCOUNTS = new Set([
   "admin",
   "admin@vietphucremix.vn",
   "quanly@vietphucremix.vn",
-  "thumodzit@gmail.com",
+  OWNER_ADMIN_EMAIL,
 ]);
 
 function sha256Hex(input: string): string {
   return crypto.createHash("sha256").update(input, "utf8").digest("hex");
 }
 
-function verifyServerAdminPassword(passwordInput: string): boolean {
-  const candidateHash = Buffer.from(sha256Hex(passwordInput.trim()), "hex");
-  const envPass = process.env.ADMIN_PASSWORD?.trim();
-  const validHashes = [
-    ...(envPass ? [sha256Hex(envPass)] : []),
-    "0f59b2d307b4f789a56e98967bc8ab589186f09f89a675a62403f672050d0c35",
-    "54b87836e3b64f161ab8154e4144b90fb74b680b1815a3f574b65e65301f5365",
-  ];
+function isAdminAuthConfigured(): boolean {
+  return Boolean(process.env.ADMIN_PASSWORD?.trim() || process.env.ADMIN_PASSWORD_HASH?.trim());
+}
 
-  for (const hex of validHashes) {
-    const targetBuf = Buffer.from(hex, "hex");
-    if (
-      targetBuf.length === candidateHash.length &&
-      crypto.timingSafeEqual(targetBuf, candidateHash)
-    ) {
-      return true;
-    }
-  }
-  return false;
+function verifyServerAdminPassword(passwordInput: string): boolean {
+  const candidateHex = sha256Hex(passwordInput.trim());
+  const envPass = process.env.ADMIN_PASSWORD?.trim();
+  const envHash = process.env.ADMIN_PASSWORD_HASH?.trim().toLowerCase();
+
+  const validHashes: string[] = [];
+  if (envPass) validHashes.push(sha256Hex(envPass));
+  if (envHash && /^[a-f0-9]{64}$/.test(envHash)) validHashes.push(envHash);
+
+  return validHashes.some((hex) => timingSafeEqualHex(hex, candidateHex));
 }
 
 export function getAuthenticatedUser(req: Request): {
@@ -68,8 +71,45 @@ export function getAuthenticatedUser(req: Request): {
   return { user, token, role: session.role || user?.role || "member" };
 }
 
-// 1. Gửi mã OTP tới email
-authRouter.post("/send-otp", async (req: Request, res: Response) => {
+export function requireAuth(req: Request, res: Response, next: NextFunction): void {
+  const auth = getAuthenticatedUser(req);
+  if (!auth.user) {
+    res.status(401).json({ ok: false, error: "Yêu cầu đăng nhập để thực hiện thao tác này." });
+    return;
+  }
+  next();
+}
+
+export function requireAdmin(req: Request, res: Response, next: NextFunction): void {
+  const { user, role } = getAuthenticatedUser(req);
+  if (!user) {
+    res.status(401).json({ ok: false, error: "Yêu cầu đăng nhập Quản trị viên." });
+    return;
+  }
+  const effectiveRole = role || user.role || "member";
+  if (effectiveRole !== "admin" && effectiveRole !== "moderator") {
+    res.status(403).json({ ok: false, error: "Bạn không có quyền Quản trị viên." });
+    return;
+  }
+  next();
+}
+
+function createSessionForUser(user: UserRecord, ttlMs: number): string {
+  const token = crypto.randomBytes(32).toString("hex");
+  const sessionRecord: SessionRecord = {
+    token,
+    user_id: user.id,
+    email: user.email,
+    role: user.role || "member",
+    expires_at: Date.now() + ttlMs,
+    created_at: new Date().toISOString(),
+  };
+  db.saveSession(sessionRecord);
+  return token;
+}
+
+// 1. Gửi mã OTP tới email (Rate limit: 8 req / 10 phút)
+authRouter.post("/send-otp", rateLimiterMiddleware(8, 600_000, "send-otp"), async (req: Request, res: Response) => {
   try {
     const rawEmail = req.body?.email;
     if (!isValidEmail(rawEmail)) {
@@ -95,12 +135,11 @@ authRouter.post("/send-otp", async (req: Request, res: Response) => {
     }
 
     const otpCode = generateOtpCode();
-    const expiresAt = Date.now() + 5 * 60 * 1000;
     const otpRecord: OtpRecord = {
       id: `otp-${Date.now()}-${crypto.randomBytes(3).toString("hex")}`,
       email,
-      code: otpCode,
-      expires_at: expiresAt,
+      code: hashOtpCode(email, otpCode),
+      expires_at: Date.now() + 5 * 60 * 1000,
       attempts: 0,
       created_at: new Date().toISOString(),
     };
@@ -119,8 +158,8 @@ authRouter.post("/send-otp", async (req: Request, res: Response) => {
   }
 });
 
-// 2. Xác minh mã OTP và cấp Session Token
-authRouter.post("/verify-otp", (req: Request, res: Response) => {
+// 2. Xác minh mã OTP và cấp Session Token (Rate limit: 10 req / 10 phút)
+authRouter.post("/verify-otp", rateLimiterMiddleware(10, 600_000, "verify-otp"), (req: Request, res: Response) => {
   try {
     const rawEmail = req.body?.email;
     const rawCode = (req.body?.code ?? req.body?.otp)?.toString();
@@ -131,7 +170,7 @@ authRouter.post("/verify-otp", (req: Request, res: Response) => {
       return;
     }
 
-    if (!rawCode || typeof rawCode !== "string" || rawCode.trim().length !== 6) {
+    if (!rawCode || typeof rawCode !== "string" || !/^\d{6}$/.test(rawCode.trim())) {
       res.status(400).json({ ok: false, error: "Mã OTP phải gồm chính xác 6 chữ số." });
       return;
     }
@@ -166,7 +205,8 @@ authRouter.post("/verify-otp", (req: Request, res: Response) => {
       return;
     }
 
-    if (activeOtp.code !== code) {
+    const expectedHash = hashOtpCode(email, code);
+    if (!timingSafeEqualHex(activeOtp.code, expectedHash)) {
       db.incrementOtpAttempts(activeOtp.id);
       const remainingAttempts = 5 - (activeOtp.attempts + 1);
       res.status(400).json({
@@ -180,7 +220,7 @@ authRouter.post("/verify-otp", (req: Request, res: Response) => {
 
     let user = db.getUserByEmail(email);
     const nowIso = new Date().toISOString();
-    const isOwnerAdmin = email === "thumodzit@gmail.com";
+    const isOwnerAdmin = email === OWNER_ADMIN_EMAIL;
 
     if (!user) {
       const defaultName = rawName ? sanitizeString(rawName) : email.split("@")[0];
@@ -203,16 +243,7 @@ authRouter.post("/verify-otp", (req: Request, res: Response) => {
       db.saveUser(user);
     }
 
-    const token = crypto.randomBytes(32).toString("hex");
-    const sessionRecord: SessionRecord = {
-      token,
-      user_id: user.id,
-      email: user.email,
-      role: user.role || "member",
-      expires_at: Date.now() + 30 * 24 * 60 * 60 * 1000,
-      created_at: nowIso,
-    };
-    db.saveSession(sessionRecord);
+    const token = createSessionForUser(user, 30 * 24 * 60 * 60 * 1000);
 
     res.json({
       ok: true,
@@ -232,9 +263,66 @@ authRouter.post("/verify-otp", (req: Request, res: Response) => {
   }
 });
 
-// 3. Đăng nhập Quản trị viên (Xác thực nghiêm ngặt trên Server, không lộ mật khẩu ở Client)
-authRouter.post("/admin-login", (req: Request, res: Response) => {
+// 2B. Đổi Firebase ID Token (Google Sign-In) sang Session Token máy chủ thực tế
+authRouter.post("/firebase-session", rateLimiterMiddleware(20, 600_000, "firebase-session"), async (req: Request, res: Response) => {
   try {
+    const idToken = typeof req.body?.idToken === "string" ? req.body.idToken.trim() : "";
+    if (!idToken) {
+      res.status(400).json({ ok: false, error: "Thiếu Firebase ID token." });
+      return;
+    }
+
+    const claims = await verifyFirebaseIdToken(idToken);
+    const nowIso = new Date().toISOString();
+    const isOwnerAdmin = claims.email === OWNER_ADMIN_EMAIL && claims.emailVerified;
+
+    let user = claims.email ? db.getUserByEmail(claims.email) : db.getUserById(claims.uid);
+    if (!user) {
+      user = {
+        id: claims.uid,
+        email: claims.email,
+        name: sanitizeString(claims.name || claims.email.split("@")[0] || "Người Mến Cổ Phục"),
+        role: isOwnerAdmin ? "admin" : "member",
+        avatar: claims.picture || "",
+        created_at: nowIso,
+        last_login: nowIso,
+      };
+    } else {
+      user.last_login = nowIso;
+      if (isOwnerAdmin) user.role = "admin";
+      if (claims.picture) user.avatar = claims.picture;
+    }
+    db.saveUser(user);
+
+    const token = createSessionForUser(user, 30 * 24 * 60 * 60 * 1000);
+    res.json({
+      ok: true,
+      token,
+      user: {
+        id: user.id,
+        email: user.email,
+        name: user.name,
+        role: user.role || "member",
+        avatar: user.avatar,
+        created_at: user.created_at,
+      },
+    });
+  } catch (err) {
+    res.status(401).json({ ok: false, error: sanitizeErrorMessage(err) });
+  }
+});
+
+// 3. Đăng nhập Quản trị viên (Rate limit: 8 req / 15 phút, không lộ mật khẩu cứng)
+authRouter.post("/admin-login", rateLimiterMiddleware(8, 900_000, "admin-login"), (req: Request, res: Response) => {
+  try {
+    if (!isAdminAuthConfigured()) {
+      res.status(503).json({
+        ok: false,
+        error: "Cổng Quản trị chưa được cấu hình ADMIN_PASSWORD trên máy chủ.",
+      });
+      return;
+    }
+
     const account = sanitizeString(req.body?.account || "").toLowerCase().trim();
     const password = typeof req.body?.password === "string" ? req.body.password : "";
 
@@ -266,15 +354,7 @@ authRouter.post("/admin-login", (req: Request, res: Response) => {
     };
     db.saveUser(adminUser);
 
-    const token = crypto.randomBytes(32).toString("hex");
-    db.saveSession({
-      token,
-      user_id: adminUser.id,
-      email: adminUser.email,
-      role: "admin",
-      expires_at: Date.now() + 12 * 60 * 60 * 1000, // Phiên Admin 12 giờ
-      created_at: nowIso,
-    });
+    const token = createSessionForUser(adminUser, 12 * 60 * 60 * 1000);
 
     res.json({
       ok: true,

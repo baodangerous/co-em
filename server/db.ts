@@ -179,6 +179,19 @@ class DatabaseManager {
     return this.isSqliteActive ? "sqlite" : "json";
   }
 
+  public getRawSqlite(): any {
+    return this.isSqliteActive ? this.sqliteDb : null;
+  }
+
+  public listAllUsers(): UserRecord[] {
+    if (this.isSqliteActive && this.sqliteDb) {
+      return this.sqliteDb
+        .prepare(`SELECT id, email, name, role, avatar, created_at, last_login FROM users ORDER BY last_login DESC LIMIT 200`)
+        .all() as UserRecord[];
+    }
+    return Object.values(this.getMemStore().users);
+  }
+
   // 1. USERS & OTP & SESSIONS
   public saveUser(user: UserRecord): void {
     if (this.isSqliteActive && this.sqliteDb) {
@@ -451,7 +464,8 @@ class DatabaseManager {
         .prepare(
           `INSERT INTO memories (id, user_id, sender_name, content, trang_phuc_name, era, created_at)
            VALUES (?, ?, ?, ?, ?, ?, ?)
-           ON CONFLICT(id) DO UPDATE SET content=excluded.content, trang_phuc_name=excluded.trang_phuc_name, era=excluded.era`
+           ON CONFLICT(id) DO UPDATE SET content=excluded.content, trang_phuc_name=excluded.trang_phuc_name, era=excluded.era
+           WHERE memories.user_id = excluded.user_id AND excluded.user_id != ''`
         )
         .run(
           record.id,

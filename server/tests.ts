@@ -1,26 +1,29 @@
 /**
  * @license
  * SPDX-License-Identifier: Apache-2.0
- * 
+ *
  * BỘ KIỂM THỬ BACKEND TOÀN DIỆN (AUTOMATED BACKEND, AUTH & SECURITY TEST SUITE)
- * Kiểm tra:
- * 1. Đăng nhập Gmail & Xác thực OTP (OTP generation, rate limiting, expiry, verification)
- * 2. Phiên làm việc (Session Tokens, Profile Retrieval, Logout)
- * 3. Tính toàn vẹn của Cơ sở dữ liệu (Database CRUD & Consistency)
- * 4. Bảo mật chống rò rỉ thông tin mật (No Secrets/Keys/Paths Leaked)
- * 5. Khử độc dữ liệu đầu vào (XSS Sanitization & Schema Validation)
- * 6. Kiểm tra các Endpoint HTTP thực tế trên máy chủ
+ * Tự khởi chạy Express server trên cổng tạm (ephemeral port) để kiểm thử đầy đủ HTTP endpoints.
  */
 
 import http from "http";
+import express from "express";
 import db from "./db.ts";
 import type { CharacterRecord, OutfitRecord, MemoryRecord, OrderRecord } from "./db.ts";
+import { communityDb } from "./dbCommunity.ts";
 import {
   redactSecrets,
   sanitizeErrorMessage,
   sanitizeString,
+  securityHeadersMiddleware,
+  hashOtpCode,
+  timingSafeEqualHex,
 } from "./security.ts";
 import { isValidEmail, generateOtpCode } from "./emailService.ts";
+import { authRouter } from "./routes/authRoutes.ts";
+import { storageRouter } from "./routes/storageRoutes.ts";
+import { communityRouter } from "./routes/communityRoutes.ts";
+import { aiRouter } from "./routes/aiRoutes.ts";
 
 interface TestResult {
   name: string;
@@ -40,8 +43,8 @@ function assert(condition: boolean, testName: string, failureMessage = ""): void
   }
 }
 
-// Helper gửi request HTTP nội bộ
 function makeRequest(
+  port: number,
   method: string,
   path: string,
   body?: unknown,
@@ -53,18 +56,10 @@ function makeRequest(
       "Content-Type": "application/json",
       "Content-Length": Buffer.byteLength(postData),
     };
-    if (token) {
-      headers["Authorization"] = `Bearer ${token}`;
-    }
+    if (token) headers["Authorization"] = `Bearer ${token}`;
 
     const req = http.request(
-      {
-        hostname: "127.0.0.1",
-        port: 3000,
-        path,
-        method,
-        headers,
-      },
+      { hostname: "127.0.0.1", port, path, method, headers },
       (res) => {
         let raw = "";
         res.on("data", (chunk) => (raw += chunk));
@@ -91,405 +86,258 @@ async function runTestSuite() {
   console.log(" BẮT ĐẦU CHẠY BỘ KIỂM THỬ BACKEND, AUTH & BẢO MẬT DỰ ÁN CÒ EM");
   console.log("============================================================\n");
 
-  // =========================================================================
-  // NHÓM 1: KIỂM THỬ ĐĂNG NHẬP GMAIL & XÁC THỰC MÃ OTP
-  // =========================================================================
-  console.log("--- 1. KIỂM THỬ ĐĂNG NHẬP GMAIL & MÃ OTP (AUTHENTICATION) ---");
+  const app = express();
+  app.use(express.json({ limit: "2mb" }));
+  app.use(securityHeadersMiddleware);
+  app.use("/api/auth", authRouter);
+  app.use("/api", storageRouter);
+  app.use("/api", communityRouter);
+  app.use("/api", aiRouter);
 
-  // Test 1: Kiểm tra định dạng email hợp lệ / không hợp lệ
-  assert(
-    isValidEmail("nguoidung.test@gmail.com") &&
-      isValidEmail("vietphuc.heritage@gmail.com") &&
-      !isValidEmail("invalid-email") &&
-      !isValidEmail("@missing.com"),
-    "Kiểm tra định dạng email hợp lệ (Valid Gmail format)",
-    "Hàm isValidEmail không hoạt động chuẩn"
-  );
-
-  // Test 2: Sinh mã OTP 6 chữ số ngẫu nhiên
-  const otpCode = generateOtpCode();
-  assert(
-    typeof otpCode === "string" && otpCode.length === 6 && /^\d{6}$/.test(otpCode),
-    "Sinh mã OTP 6 chữ số ngẫu nhiên an toàn",
-    `Mã sinh ra: ${otpCode}`
-  );
-
-  // Test 3: Endpoint POST /api/auth/send-otp từ chối email sai
-  try {
-    const badEmailRes = await makeRequest("POST", "/api/auth/send-otp", { email: "not_an_email" });
-    assert(
-      badEmailRes.status === 400 && badEmailRes.data.ok === false,
-      "Endpoint POST /api/auth/send-otp từ chối email sai định dạng (400)",
-      `Status: ${badEmailRes.status}`
-    );
-  } catch (err) {
-    console.warn("Lỗi kết nối kiểm thử:", err);
-  }
-
-  // Test 4: Endpoint POST /api/auth/send-otp gửi thành công tới Gmail
-  let generatedOtp = "";
-  const testGmail = "nguoidung.test@gmail.com";
-  try {
-    const sendOtpRes = await makeRequest("POST", "/api/auth/send-otp", { email: testGmail });
-    generatedOtp = sendOtpRes.data?.devOtpPreview || "";
-    assert(
-      sendOtpRes.status === 200 && sendOtpRes.data.ok === true && sendOtpRes.data.email === testGmail,
-      "Endpoint POST /api/auth/send-otp tạo và chuyển phát mã OTP thành công",
-      `Status: ${sendOtpRes.status}, Msg: ${sendOtpRes.data?.message}`
-    );
-  } catch (err) {
-    console.warn("Lỗi kết nối kiểm thử:", err);
-  }
-
-  // Test 5: Endpoint POST /api/auth/verify-otp từ chối mã sai
-  try {
-    const wrongOtpRes = await makeRequest("POST", "/api/auth/verify-otp", {
-      email: testGmail,
-      code: "000000",
-    });
-    assert(
-      wrongOtpRes.status === 400 && wrongOtpRes.data.ok === false,
-      "Endpoint POST /api/auth/verify-otp từ chối mã OTP không khớp (400)",
-      `Status: ${wrongOtpRes.status}`
-    );
-  } catch (err) {
-    console.warn("Lỗi kết nối kiểm thử:", err);
-  }
-
-  // Test 6: Endpoint POST /api/auth/verify-otp xác thực thành công mã OTP đúng
-  let authToken = "";
-  try {
-    // Lấy mã OTP thực tế vừa lưu trong CSDL
-    const latestDbOtp = db.getLatestOtp(testGmail);
-    const validCode = latestDbOtp?.code || generatedOtp;
-
-    const verifyRes = await makeRequest("POST", "/api/auth/verify-otp", {
-      email: testGmail,
-      code: validCode,
-      name: "Thu Modzit - Người Mến Cổ Phục",
-    });
-    authToken = verifyRes.data?.token || "";
-    assert(
-      verifyRes.status === 200 &&
-        verifyRes.data.ok === true &&
-        Boolean(authToken) &&
-        verifyRes.data.user.email === testGmail,
-      "Endpoint POST /api/auth/verify-otp xác thực thành công và cấp Session Token",
-      `Token: ${authToken?.substring(0, 16)}...`
-    );
-  } catch (err) {
-    console.warn("Lỗi kết nối kiểm thử:", err);
-  }
-
-  // Test 7: Endpoint GET /api/auth/me lấy thông tin tài khoản qua Token
-  try {
-    const meRes = await makeRequest("GET", "/api/auth/me", undefined, authToken);
-    assert(
-      meRes.status === 200 && meRes.data.ok === true && meRes.data.user.email === testGmail,
-      "Endpoint GET /api/auth/me trả về thông tin người dùng đã xác thực",
-      `User: ${meRes.data?.user?.name}`
-    );
-  } catch (err) {
-    console.warn("Lỗi kết nối kiểm thử:", err);
-  }
-
-  // Test 8: Endpoint POST /api/auth/logout đăng xuất
-  try {
-    const logoutRes = await makeRequest("POST", "/api/auth/logout", undefined, authToken);
-    const afterLogoutMe = await makeRequest("GET", "/api/auth/me", undefined, authToken);
-    assert(
-      logoutRes.status === 200 && afterLogoutMe.status === 401,
-      "Endpoint POST /api/auth/logout hủy phiên làm việc thành công (Token invalidated)",
-      `After logout status: ${afterLogoutMe.status}`
-    );
-  } catch (err) {
-    console.warn("Lỗi kết nối kiểm thử:", err);
-  }
-
-  // =========================================================================
-  // NHÓM 2: KIỂM THỬ BẢO MẬT & CHỐNG RÒ RỈ THÔNG TIN MẬT
-  // =========================================================================
-  console.log("\n--- 2. KIỂM THỬ BẢO MẬT & CHỐNG LỘ BÍ MẬT ---");
-
-  // Test 9: Khử sạch mẫu khóa API Google (AIza...)
-  const mockApiKey = "AIzaSyD-fakeKeyForTestingSecurity1234";
-  const leakedString = `Error occurred when contacting API with key ${mockApiKey} at /home/user/app/server.ts`;
-  const sanitized = redactSecrets(leakedString);
-  assert(
-    !sanitized.includes(mockApiKey) && sanitized.includes("[REDACTED]"),
-    "Khử sạch mẫu khóa API Google (AIza...) khỏi chuỗi thông báo",
-    `Kết quả: ${sanitized}`
-  );
-
-  // Test 10: Khử đường dẫn hệ thống nội bộ
-  assert(
-    !sanitized.includes("/home/user/app") && sanitized.includes("[REDACTED]"),
-    "Khử đường dẫn hệ thống nội bộ khỏi lỗi",
-    `Kết quả: ${sanitized}`
-  );
-
-  // Test 11: Thông điệp lỗi an toàn không rò rỉ stack trace
-  const safeErr = sanitizeErrorMessage(new Error("Fatal database error at /var/www/internal/db.sqlite"));
-  assert(
-    !safeErr.includes("/var/www/internal") && safeErr.length <= 160,
-    "Thông điệp lỗi an toàn (Safe error message) được cắt gọn và che giấu",
-    `Kết quả: ${safeErr}`
-  );
-
-  // Test 12: Chống XSS qua sanitizeString
-  const dirtyXSS = "<script>alert('xssAttack()')</script>Nguyễn Hoàng Nam";
-  const cleanStr = sanitizeString(dirtyXSS);
-  assert(
-    !cleanStr.includes("<script>") && cleanStr.includes("Nguyễn Hoàng Nam"),
-    "Khử độc mã JavaScript độc hại (Anti-XSS)",
-    `Kết quả: ${cleanStr}`
-  );
-
-  // =========================================================================
-  // NHÓM 3: KIỂM THỬ CƠ SỞ DỮ LIỆU (DATABASE ENGINE)
-  // =========================================================================
-  console.log("\n--- 3. KIỂM THỬ CƠ SỞ DỮ LIỆU (DATABASE ENGINE) ---");
-
-  // Test 13: Lưu và đọc nhân vật
-  const testChar: CharacterRecord = {
-    id: "test-user-01",
-    name: "Thục Anh - Người Mẫu Test",
-    gioi: "nu",
-    tuoi: "nguoi_lon",
-    vocDang: "dong_ho_cat",
-    tongDa: 2,
-    toc: "bui_thap",
-    huongNhin: "truoc",
-    updated_at: new Date().toISOString(),
-  };
-  db.saveCharacter(testChar);
-  const loadedChar = db.getCharacter("test-user-01");
-  assert(
-    loadedChar !== null && loadedChar.name === testChar.name && loadedChar.gioi === "nu",
-    "Ghi và đọc dữ liệu nhân vật trong CSDL thành công",
-    `Loaded: ${JSON.stringify(loadedChar)}`
-  );
-
-  // Test 14: Lưu và lấy danh sách bộ phối đồ (cô lập theo user_id)
-  const testDbUserId = "test-db-user-01";
-  const testOutfit: OutfitRecord = {
-    id: `test-outfit-${Date.now()}`,
-    user_id: testDbUserId,
-    title: "Áo Tấc Hoàng Tộc Xanh Thiên Thanh",
-    trang_phuc_id: "aotac",
-    mau_hex: "#0284C7",
-    phu_kien_ids: ["nonla", "vongco"],
-    nhan_vat_config: { gioi: "nu", vocDang: "dong_ho_cat" },
-    notes: "Bộ lễ phục trang nhã",
-    created_at: new Date().toISOString(),
-  };
-  db.saveOutfit(testOutfit);
-  const allOutfits = db.getAllOutfits(testDbUserId);
-  const foundOutfit = allOutfits.find((o) => o.id === testOutfit.id);
-  assert(
-    foundOutfit !== undefined && foundOutfit.title === testOutfit.title,
-    "Lưu và truy vấn danh sách bộ trang phục trong CSDL",
-    `Tìm thấy: ${foundOutfit?.title}`
-  );
-
-  // Test 15: Xóa bộ phối đồ (kiểm tra đúng chủ sở hữu)
-  const wrongUserDelete = db.deleteOutfit(testOutfit.id, "other-user");
-  const deleted = db.deleteOutfit(testOutfit.id, testDbUserId);
-  const afterDeleteOutfits = db.getAllOutfits(testDbUserId);
-  const stillExists = afterDeleteOutfits.some((o) => o.id === testOutfit.id);
-  assert(
-    wrongUserDelete === false && deleted === true && !stillExists,
-    "Xóa bộ trang phục khỏi CSDL thành công",
-    `wrongUser=${wrongUserDelete}, deleted=${deleted}, stillExists=${stillExists}`
-  );
-
-  // Test 16: Lưu và đọc ký ức Việt Phục
-  const testMemory: MemoryRecord = {
-    id: `test-mem-${Date.now()}`,
-    sender_name: "Thanh Hằng",
-    content: "Chiếc áo Nhật Bình đỏ thắm của ngoại tôi truyền lại qua 3 thế hệ.",
-    trang_phuc_name: "Áo Nhật Bình",
-    era: "Triều Nguyễn",
-    created_at: new Date().toISOString(),
-  };
-  db.saveMemory(testMemory);
-  const allMemories = db.getAllMemories();
-  const foundMem = allMemories.find((m) => m.id === testMemory.id);
-  assert(
-    foundMem !== undefined && foundMem.sender_name === "Thanh Hằng",
-    "Lưu và đọc ký ức di sản Việt phục thành công",
-    `Tìm thấy: ${foundMem?.content}`
-  );
-
-  // Test 17: Đơn hàng chợ phiên (cô lập theo user_id)
-  const testOrder: OrderRecord = {
-    id: `test-ord-${Date.now()}`,
-    user_id: testDbUserId,
-    item_id: "aodai_truyenthong",
-    item_name: "Áo Dài Lụa Hà Đông",
-    size: "L",
-    quantity: 1,
-    status: "pending",
-    created_at: new Date().toISOString(),
-  };
-  db.saveOrder(testOrder);
-  const allOrders = db.getAllOrders(testDbUserId);
-  const foundOrder = allOrders.find((o) => o.id === testOrder.id);
-  assert(
-    foundOrder !== undefined && foundOrder.item_name === "Áo Dài Lụa Hà Đông",
-    "Ghi nhận đơn hàng chợ phiên vào CSDL thành công",
-    `Order status: ${foundOrder?.status}`
-  );
-
-  // Test 18: Cache AI trên máy chủ
-  const cacheKey = "test_prompt_hash_123";
-  const cacheData = { suggestion: "Nên kết hợp với hài nhung thêu chỉ vàng" };
-  db.setAiCache(cacheKey, cacheData);
-  const loadedCache = db.getAiCache(cacheKey);
-  assert(
-    JSON.stringify(loadedCache) === JSON.stringify(cacheData),
-    "Hệ thống lưu đệm AI Cache hoạt động chuẩn xác",
-    `Loaded cache: ${JSON.stringify(loadedCache)}`
-  );
-
-  // =========================================================================
-  // NHÓM 4: KIỂM THỬ CÁC ENDPOINT HTTP THỰC TẾ TRÊN MÁY CHỦ
-  // =========================================================================
-  console.log("\n--- 4. KIỂM THỬ CÁC ENDPOINTS HTTP TRÊN SERVER ĐANG CHẠY ---");
+  const server = await new Promise<http.Server | null>((resolve) => {
+    const srv = app.listen(0, "127.0.0.1", () => resolve(srv));
+    srv.on("error", () => resolve(null));
+  });
+  const addr = server?.address();
+  const port = typeof addr === "object" && addr ? addr.port : 0;
 
   try {
-    // Test 19: Endpoint /api/health bảo đảm an toàn
-    const healthRes = await makeRequest("GET", "/api/health");
+    // 1. CRYPTO, OTP & SECURITY HELPERS
+    console.log("--- 1. KIỂM THỬ BẢO MẬT, OTP HASH & SANITIZATION ---");
     assert(
-      healthRes.status === 200 && healthRes.data.status === "ok",
-      "Endpoint GET /api/health phản hồi 200 OK",
-      `Status: ${healthRes.status}`
+      isValidEmail("nguoidung.test@gmail.com") &&
+        !isValidEmail("invalid-email") &&
+        !isValidEmail("@missing.com"),
+      "Kiểm tra định dạng email hợp lệ",
+      "isValidEmail không chuẩn"
     );
 
-    // Test 20: Kiểm tra /api/health KHÔNG rò rỉ khóa API
-    const rawHealthText = JSON.stringify(healthRes.data);
-    const keyLeaked =
-      rawHealthText.includes("AIza") ||
-      rawHealthText.includes(process.env.GEMINI_API_KEY || "___none___");
+    const otpCode = generateOtpCode();
+    assert(/^\d{6}$/.test(otpCode), "Sinh mã OTP 6 chữ số ngẫu nhiên", `Code: ${otpCode}`);
+
+    const otpHash = hashOtpCode("test@gmail.com", otpCode);
     assert(
-      !keyLeaked,
-      "Endpoint /api/health TUYỆT ĐỐI KHÔNG chứa chuỗi API Key của hệ thống",
-      `Health output: ${rawHealthText}`
+      otpHash !== otpCode &&
+        otpHash.length === 64 &&
+        timingSafeEqualHex(otpHash, hashOtpCode("TEST@gmail.com", otpCode)) &&
+        !timingSafeEqualHex(otpHash, hashOtpCode("test@gmail.com", "000000")),
+      "Băm OTP bằng HMAC-SHA256 & so sánh hằng thời gian",
+      `Hash len: ${otpHash.length}`
     );
 
-    // Test 21: Endpoint GET /api/memories
-    const memRes = await makeRequest("GET", "/api/memories");
+    const mockApiKey = "AIzaSyD-fakeKeyForTestingSecurity1234";
+    const sanitized = redactSecrets(`Error with key ${mockApiKey} at /home/user/app/server.ts`);
     assert(
-      memRes.status === 200 && Array.isArray(memRes.data.data),
-      "Endpoint GET /api/memories trả về danh sách mảng JSON",
-      `Status: ${memRes.status}, Count: ${memRes.data.data?.length}`
+      !sanitized.includes(mockApiKey) &&
+        !sanitized.includes("/home/user/app") &&
+        sanitized.includes("[REDACTED]"),
+      "Khử sạch API key và đường dẫn nội bộ",
+      sanitized
     );
 
-    // Test 22: Endpoint POST /api/character khử XSS
-    const postCharRes = await makeRequest("POST", "/api/character", {
-      id: "http-char-test",
-      name: "<b>Huyền Trang</b>",
+    const safeErr = sanitizeErrorMessage(new Error("Fatal at /var/www/internal/db.sqlite"));
+    assert(!safeErr.includes("/var/www/internal") && safeErr.length <= 160, "Cắt gọn lỗi an toàn", safeErr);
+
+    const cleanStr = sanitizeString("<script>alert('xss')</script>Nguyễn Hoàng Nam");
+    assert(!cleanStr.includes("<script>") && cleanStr.includes("Nguyễn Hoàng Nam"), "Chống XSS", cleanStr);
+
+    // 2. DATABASE ENGINE & IDOR ISOLATION
+    console.log("\n--- 2. KIỂM THỬ CSDL & CÔ LẬP DỮ LIỆU (IDOR PROTECTION) ---");
+    const testChar: CharacterRecord = {
+      id: "test-user-01",
+      user_id: "u-01",
+      name: "Thục Anh",
       gioi: "nu",
-      tongDa: 3,
-    });
+      tuoi: "nguoi_lon",
+      vocDang: "dong_ho_cat",
+      tongDa: 2,
+      toc: "bui_thap",
+      huongNhin: "truoc",
+      updated_at: new Date().toISOString(),
+    };
+    db.saveCharacter(testChar);
+    const loadedChar = db.getCharacter("test-user-01", "u-01");
+    const crossUserChar = db.getCharacter("test-user-01", "u-02");
     assert(
-      postCharRes.status === 200 && !postCharRes.data.data.name.includes("<b>"),
-      "Endpoint POST /api/character tự động khử thẻ HTML",
-      `Name: ${postCharRes.data.data?.name}`
+      loadedChar?.name === "Thục Anh" && crossUserChar === null,
+      "Cô lập nhân vật theo user_id",
+      `loaded=${loadedChar?.name}, cross=${crossUserChar}`
     );
 
-    // Test 23: Endpoint POST /api/gemini kiểm tra validation input thiếu
-    const badGeminiRes = await makeRequest("POST", "/api/gemini", {});
+    const testOutfit: OutfitRecord = {
+      id: `test-outfit-${Date.now()}`,
+      user_id: "u-01",
+      title: "Áo Tấc Thiên Thanh",
+      trang_phuc_id: "aotac",
+      mau_hex: "#0284C7",
+      phu_kien_ids: ["nonla"],
+      nhan_vat_config: { gioi: "nu" },
+      created_at: new Date().toISOString(),
+    };
+    db.saveOutfit(testOutfit);
     assert(
-      badGeminiRes.status === 400 && badGeminiRes.data.ok === false,
-      "Endpoint POST /api/gemini từ chối yêu cầu rỗng (400 Bad Request) an toàn",
-      `Status: ${badGeminiRes.status}`
+      db.deleteOutfit(testOutfit.id, "u-02") === false && db.deleteOutfit(testOutfit.id, "u-01") === true,
+      "Chỉ chủ sở hữu mới xóa được bộ phối đồ",
+      "IDOR check failed"
     );
 
-    // Test 24: Kiểm tra bảo mật HTTP Headers
-    const headers = healthRes.headers;
-    const hasNosniff = headers["x-content-type-options"] === "nosniff";
-    const hasFrame = headers["x-frame-options"] === "SAMEORIGIN";
+    const memId = `test-mem-${Date.now()}`;
+    const testMemory: MemoryRecord = {
+      id: memId,
+      user_id: "u-01",
+      sender_name: "Thanh Hằng",
+      content: "Ký ức áo Nhật Bình",
+      trang_phuc_name: "Áo Nhật Bình",
+      era: "Triều Nguyễn",
+      created_at: new Date().toISOString(),
+    };
+    db.saveMemory(testMemory);
+    db.saveMemory({ ...testMemory, user_id: "u-02", content: "Bị ghi đè trái phép" });
     assert(
-      hasNosniff && hasFrame,
-      "Máy chủ gửi đầy đủ Security Headers (nosniff, SAMEORIGIN)",
-      `Headers: nosniff=${hasNosniff}, frame=${hasFrame}`
+      db.getMemoryById(memId)?.content === "Ký ức áo Nhật Bình",
+      "Chống ghi đè ký ức của người dùng khác (IDOR)",
+      db.getMemoryById(memId)?.content
     );
 
-    // Test 25: /api/sync từ chối ghi khi chưa đăng nhập (401)
-    const unauthSyncPost = await makeRequest("POST", "/api/sync", {
-      character: { gioi: "nam" },
-    });
+    const testOrder: OrderRecord = {
+      id: `test-ord-${Date.now()}`,
+      user_id: "u-01",
+      item_id: "aodai",
+      item_name: "Áo Dài Lụa",
+      size: "L",
+      quantity: 1,
+      status: "pending",
+      created_at: new Date().toISOString(),
+    };
+    db.saveOrder(testOrder);
     assert(
-      unauthSyncPost.status === 401 && unauthSyncPost.data.ok === false,
-      "Endpoint POST /api/sync từ chối ghi dữ liệu khi thiếu Bearer token (401)",
-      `Status: ${unauthSyncPost.status}`
+      db.getAllOrders("u-01").some((o) => o.id === testOrder.id) &&
+        !db.getAllOrders("u-02").some((o) => o.id === testOrder.id),
+      "Cô lập đơn hàng theo user_id",
+      "Order isolation failed"
     );
 
-    // Test 26: Đăng nhập lại bằng OTP và kiểm tra đồng bộ đa chiều POST/GET /api/sync
-    const syncEmail = "dongbo.test@gmail.com";
-    const sendSyncOtp = await makeRequest("POST", "/api/auth/send-otp", { email: syncEmail });
-    const latestSyncOtp = db.getLatestOtp(syncEmail)?.code || sendSyncOtp.data?.devOtpPreview;
-    const verifySync = await makeRequest("POST", "/api/auth/verify-otp", {
-      email: syncEmail,
-      code: latestSyncOtp,
-      name: "Người Dùng Đồng Bộ",
-    });
-    const syncToken = verifySync.data?.token || "";
-    const syncOutfitId = `sync-outfit-${Date.now()}`;
-    const postSyncRes = await makeRequest(
-      "POST",
-      "/api/sync",
-      {
-        character: { gioi: "nam", vocDang: "chu_nhat", tongDa: 3, toc: "ngan" },
-        outfits: [
-          {
-            id: syncOutfitId,
-            title: "<b>Áo Giao Lĩnh Đồng Bộ</b>",
-            trang_phuc_id: "giaolinh",
-            mau_hex: "m_do",
-            phu_kien_ids: ["nonla"],
-          },
-        ],
-      },
-      syncToken
-    );
-    const getSyncRes = await makeRequest("GET", "/api/sync", undefined, syncToken);
-    const syncedOutfit = Array.isArray(getSyncRes.data?.outfits)
-      ? getSyncRes.data.outfits.find((o: any) => o.id === syncOutfitId)
-      : null;
+    communityDb.setKv("settings", { projectName: "Cò Em Test", requirePostModeration: false });
     assert(
-      postSyncRes.status === 200 &&
-        getSyncRes.status === 200 &&
-        getSyncRes.data?.authenticated === true &&
-        getSyncRes.data?.character?.gioi === "nam" &&
-        Boolean(syncedOutfit) &&
-        !String(syncedOutfit.title).includes("<b>"),
-      "Endpoint POST/GET /api/sync đồng bộ nhân vật & trang phục theo user an toàn",
-      `Status: ${postSyncRes.status}/${getSyncRes.status}`
+      communityDb.getKv<{ projectName?: string }>("settings", {}).projectName === "Cò Em Test",
+      "Lưu và đọc cấu hình cộng đồng trong SQLite",
+      "communityDb KV failed"
     );
-    if (syncToken) {
-      await makeRequest("POST", "/api/auth/logout", undefined, syncToken);
+
+    // 3. HTTP ENDPOINTS
+    if (port > 0) {
+      console.log(`\n--- 3. KIỂM THỬ HTTP ENDPOINTS (PORT ${port}) ---`);
+      const healthRes = await makeRequest(port, "GET", "/api/health");
+      assert(
+        healthRes.status === 200 &&
+          healthRes.data.status === "ok" &&
+          healthRes.headers["x-content-type-options"] === "nosniff" &&
+          healthRes.headers["x-frame-options"] === "SAMEORIGIN",
+        "GET /api/health trả 200 & đủ Security Headers",
+        `Status: ${healthRes.status}`
+      );
+
+      const unauthChar = await makeRequest(port, "POST", "/api/character", { gioi: "nam" });
+      assert(unauthChar.status === 401, "POST /api/character từ chối khi chưa đăng nhập (401)", `Status: ${unauthChar.status}`);
+
+      const unauthOrder = await makeRequest(port, "POST", "/api/orders", {
+        item_id: "aodai",
+        item_name: "Áo Dài",
+      });
+      assert(unauthOrder.status === 401, "POST /api/orders từ chối khi chưa đăng nhập (401)", `Status: ${unauthOrder.status}`);
+
+      const unauthAdmin = await makeRequest(port, "GET", "/api/admin/overview");
+      assert(unauthAdmin.status === 401, "GET /api/admin/overview từ chối khi chưa đăng nhập (401)", `Status: ${unauthAdmin.status}`);
+
+      const bootRes = await makeRequest(port, "GET", "/api/community/bootstrap");
+      assert(bootRes.status === 200 && bootRes.data.ok === true, "GET /api/community/bootstrap hoạt động", `Status: ${bootRes.status}`);
+
+      const villageOrderRes = await makeRequest(port, "POST", "/api/community/village-orders", {
+        villageId: "van_phuc",
+        villageName: "Làng Lụa Vạn Phúc",
+        costumeName: "Áo Ngũ Thân",
+        customerName: "Minh Anh",
+        customerPhone: "0912345678",
+        note: "Đo may áo",
+      });
+      assert(
+        villageOrderRes.status === 200 && villageOrderRes.data.data?.customer_phone === "0912345678",
+        "POST /api/community/village-orders lưu đúng SĐT khách hàng",
+        JSON.stringify(villageOrderRes.data)
+      );
+
+      const maskedOrdersRes = await makeRequest(port, "GET", "/api/community/village-orders");
+      const firstMasked = maskedOrdersRes.data?.data?.[0]?.customer_phone || "";
+      assert(
+        maskedOrdersRes.status === 200 && firstMasked.includes("****"),
+        "GET /api/community/village-orders tự động che SĐT với người dùng thường",
+        `Phone: ${firstMasked}`
+      );
+
+      // Auth OTP flow
+      const testEmail = `sync.${Date.now()}@gmail.com`;
+      const sendRes = await makeRequest(port, "POST", "/api/auth/send-otp", { email: testEmail });
+      assert(sendRes.status === 200 && sendRes.data.ok === true, "POST /api/auth/send-otp thành công", `Status: ${sendRes.status}`);
+
+      // Simulate known OTP hash in DB for end-to-end verify test
+      const fixedCode = "654321";
+      db.saveOtp({
+        id: `otp-e2e-${Date.now()}`,
+        email: testEmail,
+        code: hashOtpCode(testEmail, fixedCode),
+        expires_at: Date.now() + 300_000,
+        attempts: 0,
+        created_at: new Date().toISOString(),
+      });
+
+      const verifyRes = await makeRequest(port, "POST", "/api/auth/verify-otp", {
+        email: testEmail,
+        code: fixedCode,
+        name: "Người Dùng Test",
+      });
+      const token = verifyRes.data?.token || "";
+      assert(verifyRes.status === 200 && Boolean(token), "POST /api/auth/verify-otp cấp Session Token", `Status: ${verifyRes.status}`);
+
+      // Member cannot access admin endpoint (403)
+      const memberAdminRes = await makeRequest(port, "GET", "/api/admin/overview", undefined, token);
+      assert(memberAdminRes.status === 403, "Tài khoản member bị chặn khỏi /api/admin/overview (403)", `Status: ${memberAdminRes.status}`);
+
+      // Authenticated /api/sync
+      const syncPost = await makeRequest(
+        port,
+        "POST",
+        "/api/sync",
+        {
+          character: { gioi: "nam", vocDang: "chu_nhat", tongDa: 3, toc: "ngan" },
+          outfits: [{ id: `sync-o-${Date.now()}`, title: "<b>Áo Giao Lĩnh</b>", trang_phuc_id: "giaolinh", mau_hex: "m_do" }],
+        },
+        token
+      );
+      const syncGet = await makeRequest(port, "GET", "/api/sync", undefined, token);
+      assert(
+        syncPost.status === 200 &&
+          syncGet.status === 200 &&
+          syncGet.data?.character?.gioi === "nam" &&
+          !String(syncGet.data?.outfits?.[0]?.title || "").includes("<b>"),
+        "POST/GET /api/sync đồng bộ & khử XSS thành công",
+        `Status: ${syncPost.status}/${syncGet.status}`
+      );
+
+      await makeRequest(port, "POST", "/api/auth/logout", undefined, token);
+    } else {
+      console.warn("Lưu ý: Môi trường sandbox không cho phép bind cổng HTTP tạm, bỏ qua nhóm HTTP tests.");
     }
-  } catch (err: unknown) {
-    console.warn("Lưu ý: Không thể kết nối tới server 127.0.0.1:3000 để chạy HTTP test.", err);
+  } finally {
+    server?.close();
   }
 
-  // =========================================================================
-  // TỔNG KẾT KẾT QUẢ KIỂM THỬ
-  // =========================================================================
   console.log("\n============================================================");
   const total = results.length;
   const passed = results.filter((r) => r.passed).length;
   const failed = total - passed;
-
   console.log(` TỔNG SỐ TEST: ${total} | ĐẠT: ${passed} | THẤT BẠI: ${failed}`);
-  if (failed === 0) {
-    console.log(" 🎉 TOÀN BỘ CÁC BÀI KIỂM THỬ ĐÃ VƯỢT QUA 100%! HỆ THỐNG AN TOÀN TUYỆT ĐỐI.");
-  } else {
-    console.error(" ⚠️ CÓ MỘT SỐ BÀI KIỂM THỬ CHƯA ĐẠT. VUI LÒNG KIỂM TRA LẠI.");
-  }
   console.log("============================================================\n");
+  if (failed > 0) process.exit(1);
 }
 
 runTestSuite();

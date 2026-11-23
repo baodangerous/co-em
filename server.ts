@@ -22,6 +22,7 @@ import {
 import { authRouter } from "./server/routes/authRoutes.ts";
 import { storageRouter } from "./server/routes/storageRoutes.ts";
 import { aiRouter } from "./server/routes/aiRoutes.ts";
+import { communityRouter } from "./server/routes/communityRoutes.ts";
 
 dotenv.config();
 
@@ -40,6 +41,7 @@ app.use("/api/", rateLimiterMiddleware(180, 60000));
 // Đăng ký các phân hệ API
 app.use("/api/auth", authRouter);
 app.use("/api", storageRouter);
+app.use("/api", communityRouter);
 app.use("/api", aiRouter);
 
 app.use((err: unknown, _req: Request, res: Response, _next: NextFunction) => {

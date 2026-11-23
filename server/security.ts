@@ -10,6 +10,7 @@
  */
 
 import type { Request, Response, NextFunction } from "express";
+import crypto from "crypto";
 
 // Danh sách các từ khóa hoặc mẫu nhạy cảm cần lọc sạch
 const SENSITIVE_PATTERNS = [
@@ -83,37 +84,110 @@ export function securityHeadersMiddleware(_req: Request, res: Response, next: Ne
   res.setHeader("X-Frame-Options", "SAMEORIGIN");
   res.setHeader("X-XSS-Protection", "1; mode=block");
   res.setHeader("Referrer-Policy", "strict-origin-when-cross-origin");
+  res.setHeader("X-Permitted-Cross-Domain-Policies", "none");
+  res.setHeader("Permissions-Policy", "camera=(self), microphone=(), geolocation=(self)");
   next();
 }
 
 /**
- * Middleware giới hạn tần suất yêu cầu đơn giản bằng bộ nhớ in-memory (Rate Limiter)
+ * So sánh chuỗi hex theo hằng thời gian (Timing-Safe)
+ */
+export function timingSafeEqualHex(hexA: string, hexB: string): boolean {
+  if (!hexA || !hexB || hexA.length !== hexB.length) return false;
+  try {
+    const bufA = Buffer.from(hexA, "hex");
+    const bufB = Buffer.from(hexB, "hex");
+    return bufA.length === bufB.length && bufA.length > 0 && crypto.timingSafeEqual(bufA, bufB);
+  } catch {
+    return false;
+  }
+}
+
+/**
+ * Băm mã OTP theo email để không lưu plaintext OTP trong CSDL
+ */
+export function hashOtpCode(email: string, code: string): string {
+  const secret = process.env.OTP_HASH_SECRET || process.env.ADMIN_PASSWORD || "vpr-otp-salt-v1";
+  return crypto
+    .createHmac("sha256", secret)
+    .update(`${email.toLowerCase().trim()}:${code.trim()}`)
+    .digest("hex");
+}
+
+/**
+ * Kiểm tra JSON theo schema đơn giản và chặt chẽ
+ */
+export function validateSchema(data: unknown, schema: Record<string, unknown>, depth = 0): boolean {
+  if (!schema || depth > 8) return depth <= 8;
+  const expectedType = schema.type as string | undefined;
+
+  if (expectedType === "object") {
+    if (typeof data !== "object" || data === null || Array.isArray(data)) return false;
+    const obj = data as Record<string, unknown>;
+    if (Array.isArray(schema.required)) {
+      for (const field of schema.required) {
+        if (typeof field === "string" && (obj[field] === undefined || obj[field] === null)) {
+          return false;
+        }
+      }
+    }
+    if (schema.properties && typeof schema.properties === "object") {
+      const props = schema.properties as Record<string, Record<string, unknown>>;
+      for (const [key, propSchema] of Object.entries(props)) {
+        if (obj[key] !== undefined && obj[key] !== null) {
+          if (!validateSchema(obj[key], propSchema, depth + 1)) return false;
+        }
+      }
+    }
+    return true;
+  }
+
+  if (expectedType === "array") {
+    if (!Array.isArray(data)) return false;
+    if (schema.items && typeof schema.items === "object") {
+      const itemSchema = schema.items as Record<string, unknown>;
+      for (const item of data) {
+        if (!validateSchema(item, itemSchema, depth + 1)) return false;
+      }
+    }
+    return true;
+  }
+
+  if (expectedType === "string") return typeof data === "string";
+  if (expectedType === "number" || expectedType === "integer") return typeof data === "number";
+  if (expectedType === "boolean") return typeof data === "boolean";
+  return true;
+}
+
+/**
+ * Middleware giới hạn tần suất yêu cầu theo bộ nhớ in-memory (hỗ trợ bucket riêng theo route)
  */
 const requestCounts = new Map<string, { count: number; resetTime: number }>();
 
 const cleanupInterval = setInterval(() => {
   const now = Date.now();
-  for (const [ip, record] of requestCounts.entries()) {
+  for (const [key, record] of requestCounts.entries()) {
     if (now > record.resetTime) {
-      requestCounts.delete(ip);
+      requestCounts.delete(key);
     }
   }
 }, 60_000);
 cleanupInterval.unref?.();
 
-export function rateLimiterMiddleware(maxRequests = 180, windowMs = 60000) {
+export function rateLimiterMiddleware(maxRequests = 180, windowMs = 60000, keyPrefix = "global") {
   return (req: Request, res: Response, next: NextFunction) => {
     const ip = req.ip || req.socket.remoteAddress || "unknown_client";
+    const key = `${keyPrefix}:${ip}`;
     const now = Date.now();
 
-    const record = requestCounts.get(ip);
+    const record = requestCounts.get(key);
     if (!record || now > record.resetTime) {
       if (requestCounts.size > 5000) {
         for (const [k, v] of requestCounts.entries()) {
           if (now > v.resetTime) requestCounts.delete(k);
         }
       }
-      requestCounts.set(ip, { count: 1, resetTime: now + windowMs });
+      requestCounts.set(key, { count: 1, resetTime: now + windowMs });
       return next();
     }
 

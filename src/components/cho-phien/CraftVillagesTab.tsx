@@ -36,6 +36,7 @@ export default function CraftVillagesTab({
   const [selectedVillageForOrder, setSelectedVillageForOrder] =
     useState<CraftVillageItem | null>(null);
   const [orderName, setOrderName] = useState("");
+  const [orderPhone, setOrderPhone] = useState("");
   const [orderNote, setOrderNote] = useState("");
 
   const filteredVillages = useMemo(() => {
@@ -45,13 +46,13 @@ export default function CraftVillagesTab({
 
   const handleSubmitOrder = (e: React.FormEvent) => {
     e.preventDefault();
-    if (!selectedVillageForOrder || !orderName.trim()) return;
+    if (!selectedVillageForOrder || !orderName.trim() || !orderPhone.trim()) return;
     addVillageOrder({
       villageId: selectedVillageForOrder.id,
       villageName: selectedVillageForOrder.name,
       costumeName: selectedVillageForOrder.costumeName,
       customerName: orderName.trim(),
-      customerPhone: orderName.trim(),
+      customerPhone: orderPhone.trim(),
       note: orderNote.trim(),
     });
     playFolkPluck();
@@ -60,6 +61,7 @@ export default function CraftVillagesTab({
     );
     setSelectedVillageForOrder(null);
     setOrderName("");
+    setOrderPhone("");
     setOrderNote("");
   };
 
@@ -180,7 +182,15 @@ export default function CraftVillagesTab({
               required
               value={orderName}
               onChange={(e) => setOrderName(e.target.value)}
-              placeholder="Tên hoặc số điện thoại liên hệ của bạn..."
+              placeholder="Họ và tên của bạn..."
+              className="w-full px-3 py-2 rounded-xl bg-[var(--nen-the-phu)] border border-[var(--vien-the)] text-sm text-[var(--nen-toi)]"
+            />
+            <input
+              type="tel"
+              required
+              value={orderPhone}
+              onChange={(e) => setOrderPhone(e.target.value)}
+              placeholder="Số điện thoại liên hệ (VD: 0912345678)..."
               className="w-full px-3 py-2 rounded-xl bg-[var(--nen-the-phu)] border border-[var(--vien-the)] text-sm text-[var(--nen-toi)]"
             />
             <textarea

@@ -77,6 +77,34 @@ export class AuthService {
     }
   }
 
+  /**
+   * Đổi Firebase ID Token (Google Sign-In) lấy Session Token xác thực trên máy chủ Express
+   */
+  static async loginWithFirebase(
+    idToken: string
+  ): Promise<{ ok: boolean; user?: AuthUser; error?: string }> {
+    try {
+      const res = await fetch("/api/auth/firebase-session", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ idToken }),
+      });
+      const data = await res.json();
+      if (!res.ok || !data.ok || !data.user || !data.token) {
+        return { ok: false, error: data.error || "Không thể xác thực phiên Google với máy chủ." };
+      }
+      if (typeof window !== "undefined" && window.localStorage) {
+        window.localStorage.setItem(AUTH_TOKEN_KEY, data.token);
+        window.localStorage.setItem(AUTH_USER_KEY, JSON.stringify(data.user));
+        window.dispatchEvent(new CustomEvent(AUTH_CHANGE_EVENT, { detail: data.user }));
+      }
+      return { ok: true, user: data.user };
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : "Lỗi kết nối máy chủ xác thực";
+      return { ok: false, error: msg };
+    }
+  }
+
   static getAuthHeaders(): Record<string, string> {
     const token = this.getToken();
     return token ? { Authorization: `Bearer ${token}` } : {};

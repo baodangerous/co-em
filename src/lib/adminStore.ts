@@ -13,6 +13,7 @@ import {
   emitAdminChange,
   isCurrentUserAdmin,
 } from "./adminAuth";
+import { AuthService } from "./auth";
 import { trangPhuc as defaultTrangPhuc } from "../data/trangphuc";
 import type { TrangPhuc } from "../types";
 import {
@@ -56,6 +57,16 @@ const KEYS = {
 
 export { ADMIN_DATA_CHANGE_EVENT, isCurrentUserAdmin };
 
+function syncAdminKvToServer(key: string, value: unknown): void {
+  if (typeof window === "undefined" || typeof fetch !== "function") return;
+  if (!isCurrentUserAdmin()) return;
+  fetch(`/api/admin/kv/${encodeURIComponent(key)}`, {
+    method: "PUT",
+    headers: { "Content-Type": "application/json", ...AuthService.getAuthHeaders() },
+    body: JSON.stringify({ value }),
+  }).catch(() => {});
+}
+
 function sanitizeInput(val: string, maxLen = 200): string {
   return String(val || "")
     .replace(/[<>]/g, "")
@@ -93,6 +104,7 @@ export function saveProjectSettings(next: Partial<ProjectSettings>): ProjectSett
   const updated = { ...current, ...next, adminDemoUnlock: false };
   if (typeof window !== "undefined") {
     window.localStorage.setItem(KEYS.SETTINGS, JSON.stringify(updated));
+    syncAdminKvToServer("settings", updated);
     emitAdminChange();
   }
   return updated;
@@ -141,6 +153,7 @@ export function saveCraftVillages(villages: CraftVillageItem[]): void {
   if (!isCurrentUserAdmin()) return;
   if (typeof window !== "undefined") {
     window.localStorage.setItem(KEYS.VILLAGES, JSON.stringify(villages));
+    syncAdminKvToServer("villages", villages);
     emitAdminChange();
   }
 }
@@ -181,6 +194,11 @@ export function addVillageOrder(
   const next = [record, ...rawList];
   if (typeof window !== "undefined") {
     window.localStorage.setItem(KEYS.VILLAGE_ORDERS, JSON.stringify(next));
+    fetch("/api/community/village-orders", {
+      method: "POST",
+      headers: { "Content-Type": "application/json", ...AuthService.getAuthHeaders() },
+      body: JSON.stringify(record),
+    }).catch(() => {});
     emitAdminChange();
   }
   return record;
@@ -195,6 +213,11 @@ export function updateVillageOrderStatus(
   const next = current.map((o) => (o.id === id ? { ...o, status } : o));
   if (typeof window !== "undefined") {
     window.localStorage.setItem(KEYS.VILLAGE_ORDERS, JSON.stringify(next));
+    fetch(`/api/admin/village-orders/${encodeURIComponent(id)}`, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json", ...AuthService.getAuthHeaders() },
+      body: JSON.stringify({ status }),
+    }).catch(() => {});
     emitAdminChange();
   }
 }
@@ -216,6 +239,7 @@ export function saveWorkshops(workshops: WorkshopItem[]): void {
   if (!isCurrentUserAdmin()) return;
   if (typeof window !== "undefined") {
     window.localStorage.setItem(KEYS.WORKSHOPS, JSON.stringify(workshops));
+    syncAdminKvToServer("workshops", workshops);
     emitAdminChange();
   }
 }
@@ -257,6 +281,11 @@ export function submitWorkshopRegistration(
   const next = [record, ...rawList];
   if (typeof window !== "undefined") {
     window.localStorage.setItem(KEYS.WS_REGISTRATIONS, JSON.stringify(next));
+    fetch("/api/community/workshop-registrations", {
+      method: "POST",
+      headers: { "Content-Type": "application/json", ...AuthService.getAuthHeaders() },
+      body: JSON.stringify(record),
+    }).catch(() => {});
     emitAdminChange();
   }
   return record;
@@ -271,6 +300,11 @@ export function updateWorkshopRegistrationStatus(
   const next = current.map((r) => (r.id === id ? { ...r, status } : r));
   if (typeof window !== "undefined") {
     window.localStorage.setItem(KEYS.WS_REGISTRATIONS, JSON.stringify(next));
+    fetch(`/api/admin/workshop-registrations/${encodeURIComponent(id)}`, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json", ...AuthService.getAuthHeaders() },
+      body: JSON.stringify({ status }),
+    }).catch(() => {});
     emitAdminChange();
   }
 }
@@ -309,6 +343,7 @@ export function saveCustomCostume(costume: TrangPhuc): void {
       : [costume, ...current];
   if (typeof window !== "undefined") {
     window.localStorage.setItem(KEYS.CUSTOM_COSTUMES, JSON.stringify(next));
+    syncAdminKvToServer("custom_costumes", next);
     emitAdminChange();
   }
 }
@@ -332,6 +367,7 @@ export function toggleCostumeVisibility(costumeId: string): boolean {
     : [...hidden, costumeId];
   if (typeof window !== "undefined") {
     window.localStorage.setItem(KEYS.HIDDEN_COSTUMES, JSON.stringify(next));
+    syncAdminKvToServer("hidden_costumes", next);
     emitAdminChange();
   }
   return !isCurrentlyHidden;

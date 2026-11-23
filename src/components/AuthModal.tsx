@@ -83,23 +83,29 @@ export default function AuthModal({
     try {
       const fbUser = await signInWithGoogle();
       if (fbUser) {
-        const normalizedEmail = (fbUser.email || "").toLowerCase().trim();
-        const isOwner = normalizedEmail === OWNER_ADMIN_EMAIL;
-        const authUser: AuthUser = {
-          id: fbUser.uid,
-          name: fbUser.displayName || fbUser.email?.split("@")[0] || "Người Mến Cổ Phục",
-          email: fbUser.email || "",
-          role: isOwner && fbUser.emailVerified ? "admin" : "member",
-          avatar: fbUser.photoURL || undefined,
-        };
+        const idToken = await fbUser.getIdToken();
+        const serverRes = await AuthService.loginWithFirebase(idToken);
 
-        if (typeof window !== "undefined" && window.localStorage) {
-          window.localStorage.setItem("vpr:auth_token", `fb-${fbUser.uid}`);
-          window.localStorage.setItem("vpr:auth_user", JSON.stringify(authUser));
+        let authUser: AuthUser;
+        if (serverRes.ok && serverRes.user) {
+          authUser = serverRes.user;
+        } else {
+          // Offline / fallback: không tự cấp quyền admin khi chưa được máy chủ xác thực
+          authUser = {
+            id: fbUser.uid,
+            name: fbUser.displayName || fbUser.email?.split("@")[0] || "Người Mến Cổ Phục",
+            email: fbUser.email || "",
+            role: "member",
+            avatar: fbUser.photoURL || undefined,
+          };
+          if (typeof window !== "undefined" && window.localStorage) {
+            window.localStorage.setItem("vpr:auth_token", `fb-${fbUser.uid}`);
+            window.localStorage.setItem("vpr:auth_user", JSON.stringify(authUser));
+          }
+          window.dispatchEvent(new CustomEvent(AUTH_CHANGE_EVENT, { detail: authUser }));
         }
 
         taoHoacChonHoSo(authUser.name);
-        window.dispatchEvent(new CustomEvent(AUTH_CHANGE_EVENT, { detail: authUser }));
         setName(authUser.name);
         setStep("success");
         if (onSuccess) onSuccess(authUser);

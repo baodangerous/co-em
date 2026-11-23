@@ -6,6 +6,7 @@
 import { NhanVatConfig, NHAN_VAT_MAC_DINH } from "./avatar";
 import { OutfitSaved } from "./guiKyUc";
 import { layHoSoHienTai } from "./hoSo";
+import { AuthService } from "./auth";
 import { trangPhuc } from "../data/trangphuc";
 import { nhom } from "../data/nhom";
 
@@ -80,6 +81,11 @@ export function dangLenChoPhien(
   const capNhat = [post, ...danhSach];
   try {
     localStorage.setItem(CHO_PHIEN_STORAGE_KEY, JSON.stringify(capNhat));
+    fetch("/api/community/posts", {
+      method: "POST",
+      headers: { "Content-Type": "application/json", ...AuthService.getAuthHeaders() },
+      body: JSON.stringify(post),
+    }).catch(() => {});
   } catch (e) {
     console.warn("Lỗi lưu bài Chợ phiên:", e);
   }

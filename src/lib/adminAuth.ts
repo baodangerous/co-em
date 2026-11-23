@@ -2,7 +2,8 @@
  * @license
  * SPDX-License-Identifier: Apache-2.0
  *
- * Module kiểm tra quyền Quản trị & phát sự kiện cập nhật nhẹ (không kéo theo dataset trang phục).
+ * Module kiểm tra quyền Quản trị & phát sự kiện cập nhật nhẹ.
+ * Chỉ tin cậy role được máy chủ cấp qua phiên đăng nhập (/api/auth/*).
  */
 
 import { AuthService } from "./auth";
@@ -18,21 +19,7 @@ export function emitAdminChange(): void {
 export function isCurrentUserAdmin(): boolean {
   const authUser = AuthService.getUser();
   const token = AuthService.getToken();
-  if (!authUser || !token) return false;
+  if (!authUser || !token || token.startsWith("fb-")) return false;
 
-  if (authUser.role === "admin" || authUser.role === "moderator") {
-    return true;
-  }
-
-  if (authUser.email) {
-    const emailNorm = authUser.email.trim().toLowerCase();
-    if (
-      emailNorm === "admin@vietphucremix.vn" ||
-      emailNorm === "quanly@vietphucremix.vn" ||
-      emailNorm === "thumodzit@gmail.com"
-    ) {
-      return true;
-    }
-  }
-  return false;
+  return authUser.role === "admin" || authUser.role === "moderator";
 }

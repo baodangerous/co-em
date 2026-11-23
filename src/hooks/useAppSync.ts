@@ -147,6 +147,9 @@ export function useAdminStoreData(includeHidden = true) {
 
   useEffect(() => {
     window.addEventListener(ADMIN_DATA_CHANGE_EVENT, reloadAll);
+    import("../lib/dataSync")
+      .then((m) => m.syncCommunityDataFromServer())
+      .catch(() => {});
     return () => window.removeEventListener(ADMIN_DATA_CHANGE_EVENT, reloadAll);
   }, [reloadAll]);
 

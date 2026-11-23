@@ -316,3 +316,35 @@ export async function syncAllUserData(_reason = "auto"): Promise<void> {
 
   return inFlightSync;
 }
+
+export async function syncCommunityDataFromServer(): Promise<void> {
+  if (typeof window === "undefined" || typeof fetch !== "function") return;
+  try {
+    const res = await fetch("/api/community/bootstrap", {
+      headers: AuthService.getAuthHeaders(),
+    });
+    if (!res.ok) return;
+    const json = await res.json();
+    const d = json?.data;
+    if (!json?.ok || !d) return;
+
+    if (Array.isArray(d.villages) && d.villages.length > 0) {
+      window.localStorage.setItem("vpr:admin:villages_v1", JSON.stringify(d.villages));
+    }
+    if (Array.isArray(d.workshops) && d.workshops.length > 0) {
+      window.localStorage.setItem("vpr:admin:workshops_v1", JSON.stringify(d.workshops));
+    }
+    if (Array.isArray(d.customCostumes)) {
+      window.localStorage.setItem("vpr:admin:custom_costumes_v1", JSON.stringify(d.customCostumes));
+    }
+    if (Array.isArray(d.hiddenCostumeIds)) {
+      window.localStorage.setItem("vpr:admin:hidden_costumes_v1", JSON.stringify(d.hiddenCostumeIds));
+    }
+    if (d.settings && typeof d.settings === "object") {
+      window.localStorage.setItem("vpr:admin:settings_v1", JSON.stringify(d.settings));
+    }
+    window.dispatchEvent(new CustomEvent("vpr:admin-data-change"));
+  } catch {
+    // Offline fallback: giữ dữ liệu cục bộ
+  }
+}

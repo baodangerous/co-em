@@ -8,14 +8,15 @@
  */
 
 import { Router, type Request, type Response } from "express";
+import crypto from "crypto";
 import db, {
   type CharacterRecord,
   type MemoryRecord,
   type OrderRecord,
   type OutfitRecord,
 } from "../db.ts";
-import { sanitizeString, sanitizeErrorMessage } from "../security.ts";
-import { getAuthenticatedUser } from "./authRoutes.ts";
+import { sanitizeString, sanitizeErrorMessage, rateLimiterMiddleware } from "../security.ts";
+import { getAuthenticatedUser, requireAuth } from "./authRoutes.ts";
 
 export const storageRouter = Router();
 
@@ -175,16 +176,20 @@ storageRouter.get("/character", (req: Request, res: Response) => {
   }
 });
 
-storageRouter.post("/character", (req: Request, res: Response) => {
+storageRouter.post("/character", requireAuth, (req: Request, res: Response) => {
   try {
     const { user } = getAuthenticatedUser(req);
+    if (!user) {
+      res.status(401).json({ ok: false, error: "Yêu cầu đăng nhập để lưu nhân vật lên máy chủ." });
+      return;
+    }
     const body = req.body || {};
-    const charId = user ? `user-${user.id}` : "default";
+    const charId = `user-${user.id}`;
 
     const record: CharacterRecord = {
       id: charId,
-      user_id: user?.id,
-      name: sanitizeString(body.name) || "Người mẫu Việt Phục",
+      user_id: user.id,
+      name: sanitizeString(body.name) || user.name || "Người mẫu Việt Phục",
       gioi: body.gioi === "nam" ? "nam" : "nu",
       tuoi:
         body.tuoi === "tre_em"
@@ -192,9 +197,9 @@ storageRouter.post("/character", (req: Request, res: Response) => {
           : body.tuoi === "nguoi_cao_tuoi"
           ? "nguoi_cao_tuoi"
           : "nguoi_lon",
-      vocDang: sanitizeString(body.vocDang) || "dong_ho_cat",
-      tongDa: typeof body.tongDa === "number" ? Math.max(1, Math.min(6, body.tongDa)) : 2,
-      toc: sanitizeString(body.toc) || "bui_thap",
+      vocDang: sanitizeString(body.vocDang).slice(0, 48) || "dong_ho_cat",
+      tongDa: typeof body.tongDa === "number" ? Math.max(1, Math.min(6, Math.round(body.tongDa))) : 2,
+      toc: sanitizeString(body.toc).slice(0, 48) || "bui_thap",
       huongNhin: body.huongNhin === "sau" ? "sau" : "truoc",
       updated_at: new Date().toISOString(),
     };
@@ -294,7 +299,7 @@ storageRouter.get("/memories", (_req: Request, res: Response) => {
   }
 });
 
-storageRouter.post("/memories", (req: Request, res: Response) => {
+storageRouter.post("/memories", rateLimiterMiddleware(20, 600_000, "memories"), (req: Request, res: Response) => {
   try {
     const { user } = getAuthenticatedUser(req);
     const body = req.body || {};
@@ -309,7 +314,7 @@ storageRouter.post("/memories", (req: Request, res: Response) => {
       : sanitizeString(body.sender_name).slice(0, 80) || "Đồng điệu vô danh";
 
     const record: MemoryRecord = {
-      id: sanitizeString(body.id).slice(0, 64) || `mem-${Date.now()}`,
+      id: `mem-${Date.now()}-${crypto.randomBytes(3).toString("hex")}`,
       user_id: user?.id,
       sender_name: sender,
       content: cleanContent,
@@ -341,25 +346,34 @@ storageRouter.get("/orders", (req: Request, res: Response) => {
   }
 });
 
-storageRouter.post("/orders", (req: Request, res: Response) => {
+storageRouter.post("/orders", requireAuth, (req: Request, res: Response) => {
   try {
     const { user } = getAuthenticatedUser(req);
+    if (!user) {
+      res.status(401).json({ ok: false, error: "Vui lòng đăng nhập để đặt may vật phẩm." });
+      return;
+    }
     const body = req.body || {};
-    if (!body.item_id || !body.item_name) {
+    const itemId = sanitizeString(body.item_id).slice(0, 64);
+    const itemName = sanitizeString(body.item_name).slice(0, 120);
+    if (!itemId || !itemName) {
       res.status(400).json({ ok: false, error: "Thiếu thông tin vật phẩm cần đặt may" });
       return;
     }
 
+    const allowedSizes = new Set(["XS", "S", "M", "L", "XL", "XXL", "FREE"]);
+    const rawSize = sanitizeString(body.size).toUpperCase().slice(0, 16);
+    const size = allowedSizes.has(rawSize) ? rawSize : "M";
+    const qtyNum = Number(body.quantity);
+    const quantity = Number.isInteger(qtyNum) && qtyNum > 0 ? Math.min(qtyNum, 10) : 1;
+
     const record: OrderRecord = {
-      id: sanitizeString(body.id).slice(0, 64) || `ord-${Date.now()}`,
-      user_id: user?.id,
-      item_id: sanitizeString(body.item_id).slice(0, 64),
-      item_name: sanitizeString(body.item_name).slice(0, 120),
-      size: sanitizeString(body.size).slice(0, 16) || "M",
-      quantity:
-        typeof body.quantity === "number" && body.quantity > 0
-          ? Math.min(body.quantity, 10)
-          : 1,
+      id: `ord-${Date.now()}-${crypto.randomBytes(3).toString("hex")}`,
+      user_id: user.id,
+      item_id: itemId,
+      item_name: itemName,
+      size,
+      quantity,
       status: "pending",
       created_at: new Date().toISOString(),
     };

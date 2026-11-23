@@ -72,7 +72,8 @@ export class CharacterStorageService {
     }
 
     const token = AuthService.getToken();
-    if (token?.startsWith("fb-")) {
+    if (!token) return;
+    if (token.startsWith("fb-")) {
       import("../../lib/dataSync")
         .then((m) => m.pushCharacterToCloud(config))
         .catch(() => {});

@@ -10,7 +10,13 @@
 import { Router, type Request, type Response } from "express";
 import { GoogleGenAI } from "@google/genai";
 import db from "../db.ts";
-import { sanitizeString, sanitizeErrorMessage, redactSecrets } from "../security.ts";
+import {
+  sanitizeString,
+  sanitizeErrorMessage,
+  redactSecrets,
+  validateSchema,
+  rateLimiterMiddleware,
+} from "../security.ts";
 
 export const aiRouter = Router();
 
@@ -39,55 +45,17 @@ function hashPrompt(str: string): string {
   return Math.abs(hash).toString(36);
 }
 
-function validateSchema(data: unknown, schema: Record<string, unknown>): boolean {
-  if (!schema) return true;
-  const expectedType = schema.type as string | undefined;
-
-  if (expectedType === "object") {
-    if (typeof data !== "object" || data === null || Array.isArray(data)) return false;
-    const obj = data as Record<string, unknown>;
-    if (Array.isArray(schema.required)) {
-      for (const field of schema.required) {
-        if (typeof field === "string" && (obj[field] === undefined || obj[field] === null)) {
-          return false;
-        }
-      }
-    }
-    if (schema.properties && typeof schema.properties === "object") {
-      const props = schema.properties as Record<string, Record<string, unknown>>;
-      for (const [key, propSchema] of Object.entries(props)) {
-        if (obj[key] !== undefined && obj[key] !== null) {
-          if (!validateSchema(obj[key], propSchema)) return false;
-        }
-      }
-    }
-    return true;
-  }
-
-  if (expectedType === "array") {
-    if (!Array.isArray(data)) return false;
-    if (schema.items && typeof schema.items === "object") {
-      const itemSchema = schema.items as Record<string, unknown>;
-      for (const item of data) {
-        if (!validateSchema(item, itemSchema)) return false;
-      }
-    }
-    return true;
-  }
-
-  if (expectedType === "string") return typeof data === "string";
-  if (expectedType === "number" || expectedType === "integer") return typeof data === "number";
-  if (expectedType === "boolean") return typeof data === "boolean";
-  return true;
-}
-
 // 1. AI Virtual Try-On Spatial Keypoints Calibration
-aiRouter.post("/try-on/transfer", async (req: Request, res: Response) => {
+aiRouter.post("/try-on/transfer", rateLimiterMiddleware(30, 60_000, "ai-tryon"), async (req: Request, res: Response) => {
   const apiKey = getApiKey();
   const { image, costumeName, colorName, fabricName, preferAiImage = false } = req.body || {};
 
   if (!image || typeof image !== "string") {
     res.status(400).json({ ok: false, error: "Vui lòng cung cấp ảnh chân dung hoặc bán thân." });
+    return;
+  }
+  if (image.length > 11_000_000) {
+    res.status(413).json({ ok: false, error: "Ảnh vượt quá dung lượng tối đa 8MB." });
     return;
   }
 
@@ -287,7 +255,7 @@ Return ONLY valid JSON:
 });
 
 // 2. Proxy gọi Gemini AI xử lý ngôn ngữ văn hóa
-aiRouter.post("/gemini", async (req: Request, res: Response) => {
+aiRouter.post("/gemini", rateLimiterMiddleware(30, 60_000, "ai-gemini"), async (req: Request, res: Response) => {
   const apiKey = getApiKey();
   if (!apiKey) {
     res.status(503).json({
@@ -411,7 +379,7 @@ aiRouter.post("/gemini", async (req: Request, res: Response) => {
 });
 
 // 3. Google Maps Grounding cho địa điểm di sản
-aiRouter.post("/maps/heritage-places", async (req: Request, res: Response) => {
+aiRouter.post("/maps/heritage-places", rateLimiterMiddleware(15, 60_000, "ai-maps"), async (req: Request, res: Response) => {
   const apiKey = getApiKey();
   if (!apiKey) {
     res.status(503).json({ ok: false, error: "Dịch vụ AI chưa được cấu hình khóa trên máy chủ." });
@@ -459,7 +427,7 @@ aiRouter.post("/maps/heritage-places", async (req: Request, res: Response) => {
 });
 
 // 4. Lyria Music Generation
-aiRouter.post("/music/generate", async (req: Request, res: Response) => {
+aiRouter.post("/music/generate", rateLimiterMiddleware(15, 60_000, "ai-music"), async (req: Request, res: Response) => {
   const apiKey = getApiKey();
   if (!apiKey) {
     res.status(503).json({ ok: false, error: "Dịch vụ AI chưa được cấu hình khóa trên máy chủ." });
