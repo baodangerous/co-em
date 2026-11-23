@@ -1,0 +1,446 @@
+{
+  "characters": {
+    "test-user-01": {
+      "id": "test-user-01",
+      "name": "Thục Anh - Người Mẫu Test",
+      "gioi": "nu",
+      "tuoi": "nguoi_lon",
+      "vocDang": "dong_ho_cat",
+      "tongDa": 2,
+      "toc": "bui_thap",
+      "huongNhin": "truoc",
+      "updated_at": "2026-10-09T18:37:57.127Z"
+    },
+    "http-char-test": {
+      "id": "http-char-test",
+      "name": "bHuyền Trang/b",
+      "gioi": "nu",
+      "tuoi": "nguoi_lon",
+      "vocDang": "dong_ho_cat",
+      "tongDa": 3,
+      "toc": "bui_thap",
+      "huongNhin": "truoc",
+      "updated_at": "2026-10-09T18:37:57.143Z"
+    },
+    "default": {
+      "id": "default",
+      "name": "Người mẫu Việt Phục",
+      "gioi": "nu",
+      "tuoi": "nguoi_lon",
+      "vocDang": "trung_binh",
+      "tongDa": 2,
+      "toc": "bui_thap",
+      "huongNhin": "truoc",
+      "updated_at": "2026-10-10T06:31:05.260Z"
+    }
+  },
+  "outfits": [],
+  "memories": [
+    {
+      "id": "test-mem-1791571077130",
+      "sender_name": "Thanh Hằng",
+      "content": "Chiếc áo Nhật Bình đỏ thắm của ngoại tôi truyền lại qua 3 thế hệ.",
+      "trang_phuc_name": "Áo Nhật Bình",
+      "era": "Triều Nguyễn",
+      "created_at": "2026-10-09T18:37:57.130Z"
+    },
+    {
+      "id": "test-mem-1791569002159",
+      "sender_name": "Thanh Hằng",
+      "content": "Chiếc áo Nhật Bình đỏ thắm của ngoại tôi truyền lại qua 3 thế hệ.",
+      "trang_phuc_name": "Áo Nhật Bình",
+      "era": "Triều Nguyễn",
+      "created_at": "2026-10-09T18:03:22.159Z"
+    },
+    {
+      "id": "test-mem-1791391771034",
+      "sender_name": "Thanh Hằng",
+      "content": "Chiếc áo Nhật Bình đỏ thắm của ngoại tôi truyền lại qua 3 thế hệ.",
+      "trang_phuc_name": "Áo Nhật Bình",
+      "era": "Triều Nguyễn",
+      "created_at": "2026-10-07T16:49:31.034Z"
+    },
+    {
+      "id": "test-mem-1791389659061",
+      "sender_name": "Thanh Hằng",
+      "content": "Chiếc áo Nhật Bình đỏ thắm của ngoại tôi truyền lại qua 3 thế hệ.",
+      "trang_phuc_name": "Áo Nhật Bình",
+      "era": "Triều Nguyễn",
+      "created_at": "2026-10-07T16:14:19.061Z"
+    },
+    {
+      "id": "test-mem-1791345650118",
+      "sender_name": "Thanh Hằng",
+      "content": "Chiếc áo Nhật Bình đỏ thắm của ngoại tôi truyền lại qua 3 thế hệ.",
+      "trang_phuc_name": "Áo Nhật Bình",
+      "era": "Triều Nguyễn",
+      "created_at": "2026-10-07T04:00:50.118Z"
+    },
+    {
+      "id": "test-mem-1791343218978",
+      "sender_name": "Thanh Hằng",
+      "content": "Chiếc áo Nhật Bình đỏ thắm của ngoại tôi truyền lại qua 3 thế hệ.",
+      "trang_phuc_name": "Áo Nhật Bình",
+      "era": "Triều Nguyễn",
+      "created_at": "2026-10-07T03:20:18.978Z"
+    },
+    {
+      "id": "test-mem-1791341864613",
+      "sender_name": "Thanh Hằng",
+      "content": "Chiếc áo Nhật Bình đỏ thắm của ngoại tôi truyền lại qua 3 thế hệ.",
+      "trang_phuc_name": "Áo Nhật Bình",
+      "era": "Triều Nguyễn",
+      "created_at": "2026-10-07T02:57:44.613Z"
+    },
+    {
+      "id": "test-mem-1791341222433",
+      "sender_name": "Thanh Hằng",
+      "content": "Chiếc áo Nhật Bình đỏ thắm của ngoại tôi truyền lại qua 3 thế hệ.",
+      "trang_phuc_name": "Áo Nhật Bình",
+      "era": "Triều Nguyễn",
+      "created_at": "2026-10-07T02:47:02.433Z"
+    },
+    {
+      "id": "test-mem-1791341063673",
+      "sender_name": "Thanh Hằng",
+      "content": "Chiếc áo Nhật Bình đỏ thắm của ngoại tôi truyền lại qua 3 thế hệ.",
+      "trang_phuc_name": "Áo Nhật Bình",
+      "era": "Triều Nguyễn",
+      "created_at": "2026-10-07T02:44:23.673Z"
+    },
+    {
+      "id": "test-mem-1791287849630",
+      "sender_name": "Thanh Hằng",
+      "content": "Chiếc áo Nhật Bình đỏ thắm của ngoại tôi truyền lại qua 3 thế hệ.",
+      "trang_phuc_name": "Áo Nhật Bình",
+      "era": "Triều Nguyễn",
+      "created_at": "2026-10-06T11:57:29.630Z"
+    },
+    {
+      "id": "test-mem-1791286747170",
+      "sender_name": "Thanh Hằng",
+      "content": "Chiếc áo Nhật Bình đỏ thắm của ngoại tôi truyền lại qua 3 thế hệ.",
+      "trang_phuc_name": "Áo Nhật Bình",
+      "era": "Triều Nguyễn",
+      "created_at": "2026-10-06T11:39:07.170Z"
+    },
+    {
+      "id": "test-mem-1791277791459",
+      "sender_name": "Thanh Hằng",
+      "content": "Chiếc áo Nhật Bình đỏ thắm của ngoại tôi truyền lại qua 3 thế hệ.",
+      "trang_phuc_name": "Áo Nhật Bình",
+      "era": "Triều Nguyễn",
+      "created_at": "2026-10-06T09:09:51.459Z"
+    },
+    {
+      "id": "test-mem-1791186119365",
+      "sender_name": "Thanh Hằng",
+      "content": "Chiếc áo Nhật Bình đỏ thắm của ngoại tôi truyền lại qua 3 thế hệ.",
+      "trang_phuc_name": "Áo Nhật Bình",
+      "era": "Triều Nguyễn",
+      "created_at": "2026-10-05T07:41:59.365Z"
+    },
+    {
+      "id": "test-mem-1791186063036",
+      "sender_name": "Thanh Hằng",
+      "content": "Chiếc áo Nhật Bình đỏ thắm của ngoại tôi truyền lại qua 3 thế hệ.",
+      "trang_phuc_name": "Áo Nhật Bình",
+      "era": "Triều Nguyễn",
+      "created_at": "2026-10-05T07:41:03.036Z"
+    },
+    {
+      "id": "test-mem-1791185731850",
+      "sender_name": "Thanh Hằng",
+      "content": "Chiếc áo Nhật Bình đỏ thắm của ngoại tôi truyền lại qua 3 thế hệ.",
+      "trang_phuc_name": "Áo Nhật Bình",
+      "era": "Triều Nguyễn",
+      "created_at": "2026-10-05T07:35:31.850Z"
+    },
+    {
+      "id": "test-mem-1791183756066",
+      "sender_name": "Thanh Hằng",
+      "content": "Chiếc áo Nhật Bình đỏ thắm của ngoại tôi truyền lại qua 3 thế hệ.",
+      "trang_phuc_name": "Áo Nhật Bình",
+      "era": "Triều Nguyễn",
+      "created_at": "2026-10-05T07:02:36.066Z"
+    },
+    {
+      "id": "test-mem-1791183714718",
+      "sender_name": "Thanh Hằng",
+      "content": "Chiếc áo Nhật Bình đỏ thắm của ngoại tôi truyền lại qua 3 thế hệ.",
+      "trang_phuc_name": "Áo Nhật Bình",
+      "era": "Triều Nguyễn",
+      "created_at": "2026-10-05T07:01:54.718Z"
+    },
+    {
+      "id": "test-mem-1791183700849",
+      "sender_name": "Thanh Hằng",
+      "content": "Chiếc áo Nhật Bình đỏ thắm của ngoại tôi truyền lại qua 3 thế hệ.",
+      "trang_phuc_name": "Áo Nhật Bình",
+      "era": "Triều Nguyễn",
+      "created_at": "2026-10-05T07:01:40.849Z"
+    },
+    {
+      "id": "mem-02",
+      "sender_name": "Minh Triết",
+      "content": "Tôi yêu thích nét khoáng đạt của tà Áo Giao Lĩnh thời Hậu Lê với phong cách cổ phong trang nhã.",
+      "trang_phuc_name": "Áo Giao Lĩnh",
+      "era": "Thời Lê Trung Hưng",
+      "created_at": "2026-10-03T07:01:36.741Z"
+    },
+    {
+      "id": "mem-01",
+      "sender_name": "Hoàng Oanh",
+      "content": "Bà nội tôi từng mặc Áo Tấc màu thiên thanh trong ngày thành hôn năm 1954 tại đất kinh kỳ Huế.",
+      "trang_phuc_name": "Áo Tấc Ngũ Thân Tay Thụ",
+      "era": "Triều Nguyễn",
+      "created_at": "2026-09-30T07:01:36.740Z"
+    }
+  ],
+  "orders": [
+    {
+      "id": "test-ord-1791571077131",
+      "item_id": "aodai_truyenthong",
+      "item_name": "Áo Dài Lụa Hà Đông",
+      "size": "L",
+      "quantity": 1,
+      "status": "pending",
+      "created_at": "2026-10-09T18:37:57.131Z"
+    },
+    {
+      "id": "test-ord-1791569002160",
+      "item_id": "aodai_truyenthong",
+      "item_name": "Áo Dài Lụa Hà Đông",
+      "size": "L",
+      "quantity": 1,
+      "status": "pending",
+      "created_at": "2026-10-09T18:03:22.160Z"
+    },
+    {
+      "id": "test-ord-1791391771036",
+      "item_id": "aodai_truyenthong",
+      "item_name": "Áo Dài Lụa Hà Đông",
+      "size": "L",
+      "quantity": 1,
+      "status": "pending",
+      "created_at": "2026-10-07T16:49:31.036Z"
+    },
+    {
+      "id": "test-ord-1791389659062",
+      "item_id": "aodai_truyenthong",
+      "item_name": "Áo Dài Lụa Hà Đông",
+      "size": "L",
+      "quantity": 1,
+      "status": "pending",
+      "created_at": "2026-10-07T16:14:19.062Z"
+    },
+    {
+      "id": "test-ord-1791345650119",
+      "item_id": "aodai_truyenthong",
+      "item_name": "Áo Dài Lụa Hà Đông",
+      "size": "L",
+      "quantity": 1,
+      "status": "pending",
+      "created_at": "2026-10-07T04:00:50.119Z"
+    },
+    {
+      "id": "test-ord-1791343218978",
+      "item_id": "aodai_truyenthong",
+      "item_name": "Áo Dài Lụa Hà Đông",
+      "size": "L",
+      "quantity": 1,
+      "status": "pending",
+      "created_at": "2026-10-07T03:20:18.978Z"
+    },
+    {
+      "id": "test-ord-1791341864614",
+      "item_id": "aodai_truyenthong",
+      "item_name": "Áo Dài Lụa Hà Đông",
+      "size": "L",
+      "quantity": 1,
+      "status": "pending",
+      "created_at": "2026-10-07T02:57:44.614Z"
+    },
+    {
+      "id": "test-ord-1791341222434",
+      "item_id": "aodai_truyenthong",
+      "item_name": "Áo Dài Lụa Hà Đông",
+      "size": "L",
+      "quantity": 1,
+      "status": "pending",
+      "created_at": "2026-10-07T02:47:02.434Z"
+    },
+    {
+      "id": "test-ord-1791341063674",
+      "item_id": "aodai_truyenthong",
+      "item_name": "Áo Dài Lụa Hà Đông",
+      "size": "L",
+      "quantity": 1,
+      "status": "pending",
+      "created_at": "2026-10-07T02:44:23.674Z"
+    },
+    {
+      "id": "test-ord-1791287849631",
+      "item_id": "aodai_truyenthong",
+      "item_name": "Áo Dài Lụa Hà Đông",
+      "size": "L",
+      "quantity": 1,
+      "status": "pending",
+      "created_at": "2026-10-06T11:57:29.631Z"
+    },
+    {
+      "id": "test-ord-1791286747171",
+      "item_id": "aodai_truyenthong",
+      "item_name": "Áo Dài Lụa Hà Đông",
+      "size": "L",
+      "quantity": 1,
+      "status": "pending",
+      "created_at": "2026-10-06T11:39:07.171Z"
+    },
+    {
+      "id": "test-ord-1791277791462",
+      "item_id": "aodai_truyenthong",
+      "item_name": "Áo Dài Lụa Hà Đông",
+      "size": "L",
+      "quantity": 1,
+      "status": "pending",
+      "created_at": "2026-10-06T09:09:51.462Z"
+    },
+    {
+      "id": "test-ord-1791186119366",
+      "item_id": "aodai_truyenthong",
+      "item_name": "Áo Dài Lụa Hà Đông",
+      "size": "L",
+      "quantity": 1,
+      "status": "pending",
+      "created_at": "2026-10-05T07:41:59.366Z"
+    },
+    {
+      "id": "test-ord-1791186063037",
+      "item_id": "aodai_truyenthong",
+      "item_name": "Áo Dài Lụa Hà Đông",
+      "size": "L",
+      "quantity": 1,
+      "status": "pending",
+      "created_at": "2026-10-05T07:41:03.037Z"
+    },
+    {
+      "id": "test-ord-1791185731851",
+      "item_id": "aodai_truyenthong",
+      "item_name": "Áo Dài Lụa Hà Đông",
+      "size": "L",
+      "quantity": 1,
+      "status": "pending",
+      "created_at": "2026-10-05T07:35:31.851Z"
+    },
+    {
+      "id": "test-ord-1791183756069",
+      "item_id": "aodai_truyenthong",
+      "item_name": "Áo Dài Lụa Hà Đông",
+      "size": "L",
+      "quantity": 1,
+      "status": "pending",
+      "created_at": "2026-10-05T07:02:36.069Z"
+    },
+    {
+      "id": "test-ord-1791183714718",
+      "item_id": "aodai_truyenthong",
+      "item_name": "Áo Dài Lụa Hà Đông",
+      "size": "L",
+      "quantity": 1,
+      "status": "pending",
+      "created_at": "2026-10-05T07:01:54.718Z"
+    },
+    {
+      "id": "test-ord-1791183700849",
+      "item_id": "aodai_truyenthong",
+      "item_name": "Áo Dài Lụa Hà Đông",
+      "size": "L",
+      "quantity": 1,
+      "status": "pending",
+      "created_at": "2026-10-05T07:01:40.849Z"
+    }
+  ],
+  "ai_cache": {
+    "test_prompt_hash_123": {
+      "suggestion": "Nên kết hợp với hài nhung thêu chỉ vàng"
+    },
+    "prompt:829024": "Trong dòng chảy văn hóa Việt Nam, thời điểm và dịp mặc **áo tứ thân** có sự thay đổi rõ rệt giữa xưa và nay:\n\n### 1. Ngày nay (Hiện đại)\nHiện nay, áo tứ thân không còn là trang phục mặc thường nhật mà chủ yếu xuất hiện trong các dịp mang tính văn hóa, nghệ thuật:\n\n*   **Các lễ hội truyền thống miền Bắc:** Nổi tiếng nhất là **Hội Lim (Bắc Ninh)**, nơi các \"liền chị\" quan họ mặc áo tứ thân (kèm nón quai thao, khăn mỏ quạ) để hát đối đáp. Ngoài ra còn có Hội chùa Hương, hội Đền Hùng,...\n*   **Biểu diễn nghệ thuật sân khấu:** Trong các vở diễn chèo, tuồng, múa dân gian, ca múa nhạc truyền thống hoặc các tiết mục tái hiện đời sống của phụ nữ Bắc Bộ xưa.\n*   **Dịp Tết Nguyên Đán và chụp ảnh kỷ niệm:** Nhiều bạn trẻ hoặc các bà, các mẹ chọn mặc áo tứ thân để chụp ảnh kỷ niệm tại các không gian cổ kính (như phố cổ Hà Nội, làng cổ Đường Lâm, đền chùa) để lưu giữ nét đẹp truyền thống.\n*   **Các sự kiện văn hóa, thi hoa hậu:** Xuất hiện trong phần thi trang phục dân tộc hoặc các ngày hội giao lưu văn hóa trong và ngoài nước nhằm tôn vinh bản sắc Việt Nam.\n*   **Đám cưới truyền thống (mang tính phục dựng):** Một số gia đình hoặc cô dâu chọn mặc áo tứ thân trong lễ ăn hỏi, lễ đón dâu theo phong cách Bắc Bộ xưa.\n\n---\n\n### 2. Ngày xưa (Lịch sử)\n*   **Trang phục thường ngày:** Phụ nữ vùng đồng bằng Bắc Bộ xưa (đặc biệt là nông dân, tầng lớp bình dân) mặc áo tứ thân hàng ngày khi làm đồng, buôn bán hoặc làm việc nhà. Áo thường có màu trầm, tối (nâu sồng, đen) bằng vải thô để tiện lao động.\n*   **Dịp lễ hội, cưới xin:** Khi đi trẩy hội, đám đình, họ sẽ chọn những chiếc áo tứ thân may bằng lụa, the với màu sắc tươi sáng hơn (hồng đào, xanh lục, vàng mỡ gà), kết hợp mặc nhiều lớp áo bên trong (áo cánh, yếm đỏ thắm) tạo nên nét duyên dáng, e ấp.",
+    "prompt:grs0tz": "Chào bạn! Mình là **Cò Em**, một trợ lý ảo thông minh được phát triển để hỗ trợ bạn trong nhiều lĩnh vực khác nhau.\n\nBạn có thể coi mình là một người bạn đồng hành, một \"cuốn từ điển sống\" hay một trợ thủ đắc lực giúp bạn:\n*   **Giải đáp thắc mắc:** Từ kiến thức khoa học, lịch sử, đời sống đến các vấn đề kỹ thuật.\n*   **Sáng tạo nội dung:** Viết văn, làm thơ, soạn email, viết code hay lên ý tưởng cho các dự án.\n*   **Học tập & Làm việc:** Tóm tắt tài liệu, dịch thuật, giải toán hoặc giải thích các khái niệm khó.\n*   **Trò chuyện:** Tâm sự, chia sẻ hoặc đơn giản là cùng bạn bàn luận về những chủ đề thú vị.\n\nMình luôn sẵn sàng học hỏi và hỗ trợ bạn bất cứ lúc nào. Hôm nay mình có thể giúp gì cho bạn không?",
+    "prompt:brrhr8": "Áo ngũ thân (hay còn gọi là áo ngũ thân tay chẽn) không chỉ là một trang phục truyền thống mà còn là biểu tượng văn hóa, tư tưởng và đạo đức của người Việt thời phong kiến (đặc biệt là thời nhà Nguyễn).\n\nDưới đây là những ý nghĩa sâu sắc của áo ngũ thân:\n\n### 1. Ý nghĩa về cấu trúc (Triết lý \"Ngũ thân\")\nCái tên \"ngũ thân\" xuất phát từ cấu trúc của áo, bao gồm 5 thân vải:\n*   **4 thân chính:** Tượng trưng cho **\"Tứ thân phụ mẫu\"** (cha mẹ đẻ và cha mẹ vợ/chồng). Điều này nhắc nhở người mặc về đạo hiếu, lòng biết ơn đối với đấng sinh thành.\n*   **1 thân con (thân thứ 5):** Nằm ở phía trước, bên trong lớp áo ngoài, tượng trưng cho **chính bản thân người mặc**.\n*   **Ý nghĩa:** Việc thân thứ 5 được bao bọc bởi 4 thân lớn thể hiện sự khiêm nhường, kín đáo và vị thế của con người luôn nằm trong sự giáo dưỡng, bảo bọc của gia đình và xã hội.\n\n### 2. Ý nghĩa về đạo đức và nhân sinh quan\n*   **Sự kín đáo và chuẩn mực:** Áo ngũ thân có thiết kế kín cổ, tay chẽn, không hở hang, thể hiện phong thái đĩnh đạc, khiêm cung và chuẩn mực của người quân tử (đối với nam) hoặc sự đoan trang, dịu dàng (đối với nữ).\n*   **Ngũ thường (Nhân - Lễ - Nghĩa - Trí - Tín):** Nhiều nhà nghiên cứu cho rằng 5 thân áo còn tượng trưng cho 5 đức tính tốt đẹp của con người theo Nho giáo. Mặc áo ngũ thân là cách để người xưa tự nhắc nhở mình phải sống sao cho xứng đáng với những giá trị đạo đức đó.\n\n### 3. Ý nghĩa về sự bình đẳng và hòa hợp\n*   **Trang phục của mọi tầng lớp:** Áo ngũ thân là trang phục phổ biến cho cả nam và nữ, từ quan lại, trí thức cho đến người dân lao động. Sự khác biệt chỉ nằm ở chất liệu vải và màu sắc. Điều này cho thấy tính cộng đồng và sự gắn kết trong xã hội Việt Nam xưa.\n*   **Sự hòa hợp với thiên nhiên:** Áo ngũ thân thường được may bằng các chất liệu tự nhiên như lụa, đũi, gấm, tạo cảm giác thoải mái, nhẹ nhàng, phù hợp với khí hậu nhiệt đới của Việt Nam.\n\n### 4. Ý nghĩa về chính trị và bản sắc dân tộc\n*   **Khẳng định văn hóa:** Áo ngũ thân ra đời dưới thời chúa Nguyễn Phúc Khoát (năm 1744) như một cách để khẳng định bản sắc văn hóa riêng biệt của người Việt, tách biệt với các ảnh hưởng từ phương Bắc.\n*   **Biểu tượng của sự tự tôn:** Việc mặc áo ngũ thân trong các dịp lễ tết, cưới hỏi hay các sự kiện quan trọng hiện nay không chỉ là sự hoài cổ, mà còn là cách người Việt hiện đại khẳng định lòng tự hào dân tộc và ý thức giữ gìn di sản văn hóa tổ tiên.\n\n### 5. Ý nghĩa về thẩm mỹ\n*   **Tôn dáng:** Thiết kế của áo ngũ thân giúp che đi những khuyết điểm cơ thể, tạo nên vẻ ngoài thanh thoát, trang trọng nhưng không cứng nhắc. Nó là sự kết hợp hài hòa giữa tính thẩm mỹ và tính ứng dụng.\n\n**Tóm lại:** Áo ngũ thân không chỉ là một chiếc áo, mà là **\"bộ quy tắc ứng xử\"** được mặc trên người. Nó nhắc nhở người mặc về đạo hiếu, về sự khiêm nhường, về lòng tự tôn dân tộc và những giá trị đạo đức cốt lõi của người Việt. Hiện nay, phong trào \"phục hưng\" áo ngũ thân đang nhận được sự hưởng ứng mạnh mẽ của giới trẻ, cho thấy sức sống bền bỉ của di sản này trong đời sống đương đại."
+  },
+  "users": {
+    "usr-1791185715053-y2unun": {
+      "id": "usr-1791185715053-y2unun",
+      "email": "thumodzit@gmail.com",
+      "name": "Thư Modzit",
+      "avatar": "https://api.dicebear.com/7.x/bottts/svg?seed=thumodzit%40gmail.com",
+      "created_at": "2026-10-05T07:35:15.053Z",
+      "last_login": "2026-10-08T16:23:35.288Z"
+    },
+    "usr-1791186063018-speagj": {
+      "id": "usr-1791186063018-speagj",
+      "email": "nguoidung.test@gmail.com",
+      "name": "Thu Modzit - Người Mến Cổ Phục",
+      "avatar": "https://api.dicebear.com/7.x/bottts/svg?seed=nguoidung.test%40gmail.com",
+      "created_at": "2026-10-05T07:41:03.018Z",
+      "last_login": "2026-10-09T18:37:57.114Z"
+    },
+    "usr-1791476071910-uyp2px": {
+      "id": "usr-1791476071910-uyp2px",
+      "email": "23520230@gm.uit.edu.vn",
+      "name": "Đăng",
+      "avatar": "https://api.dicebear.com/7.x/bottts/svg?seed=23520230%40gm.uit.edu.vn",
+      "created_at": "2026-10-08T16:14:31.910Z",
+      "last_login": "2026-10-08T16:14:31.910Z"
+    },
+    "usr-1791476300491-01wb6a": {
+      "id": "usr-1791476300491-01wb6a",
+      "email": "test2@example.com",
+      "name": "An",
+      "avatar": "https://api.dicebear.com/7.x/bottts/svg?seed=test2%40example.com",
+      "created_at": "2026-10-08T16:18:20.491Z",
+      "last_login": "2026-10-08T16:18:20.491Z"
+    }
+  },
+  "otp_codes": [
+    {
+      "id": "otp-1791476208231-wn44y",
+      "email": "test@example.com",
+      "code": "823479",
+      "expires_at": 1791476508231,
+      "attempts": 0,
+      "created_at": "2026-10-08T16:16:48.231Z"
+    }
+  ],
+  "sessions": {
+    "78407e3cc00d5e9a05c71a64eab4bf1e46c14b4e5a79641dc8ef9a78cd8160c6": {
+      "token": "78407e3cc00d5e9a05c71a64eab4bf1e46c14b4e5a79641dc8ef9a78cd8160c6",
+      "user_id": "usr-1791185715053-y2unun",
+      "email": "thumodzit@gmail.com",
+      "expires_at": 1793777766833,
+      "created_at": "2026-10-05T07:36:06.832Z"
+    },
+    "21ed1c1904b8f187bb727dae44aa24c1ed5bee2d4b06b216cfa5eb107fa7d654": {
+      "token": "21ed1c1904b8f187bb727dae44aa24c1ed5bee2d4b06b216cfa5eb107fa7d654",
+      "user_id": "usr-1791476071910-uyp2px",
+      "email": "23520230@gm.uit.edu.vn",
+      "expires_at": 1794068071911,
+      "created_at": "2026-10-08T16:14:31.910Z"
+    },
+    "a40cf2a4aa333fda582b46392f1b77446aefe5e57deeb5cd804c09d2859b6177": {
+      "token": "a40cf2a4aa333fda582b46392f1b77446aefe5e57deeb5cd804c09d2859b6177",
+      "user_id": "usr-1791476300491-01wb6a",
+      "email": "test2@example.com",
+      "expires_at": 1794068300492,
+      "created_at": "2026-10-08T16:18:20.491Z"
+    },
+    "d7222ba0d50bc86a1f3eee582cff9fbfe3c9bb47a1e277c66202f7c0b1b0ffef": {
+      "token": "d7222ba0d50bc86a1f3eee582cff9fbfe3c9bb47a1e277c66202f7c0b1b0ffef",
+      "user_id": "usr-1791185715053-y2unun",
+      "email": "thumodzit@gmail.com",
+      "expires_at": 1794068615289,
+      "created_at": "2026-10-08T16:23:35.288Z"
+    }
+  }
+}
